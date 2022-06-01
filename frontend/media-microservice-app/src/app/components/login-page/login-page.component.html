@@ -1,0 +1,22 @@
+<main class="form-signin">
+    <form [formGroup]="formData" (submit)="login()">
+        <h1 class="h3 mb-3 fw-normal">Login</h1>
+
+        <div class="form-floating">
+            <input formControlName="username" type="text" class="form-control" id="floatingInput" placeholder="Enter your username">
+            <label for="floatingInput">Username</label>
+        </div>
+        <div class="form-floating">
+            <input formControlName="password" type="password" class="form-control" id="floatingPassword" placeholder="Enter your password">
+            <label for="floatingPassword">Password</label>
+        </div>
+
+        <button [disabled]="!formData.valid" class="w-100 btn btn-lg btn-primary" type="submit">Login</button>
+        <a routerLink="/register" class="w-100 btn btn-lg btn-secondary" id="register-button">Registration</a>    
+    </form>
+
+    
+</main>
+<div id="login-message-wrapper">
+    <h1 id="login-message">{{loginMessage}}</h1>
+</div>

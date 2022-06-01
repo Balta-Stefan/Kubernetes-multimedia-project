@@ -1,0 +1,9 @@
+#register-button{
+    margin-top: 15px;
+}
+
+#registration-status-wrapper{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
