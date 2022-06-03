@@ -1,18 +1,21 @@
 package pisio.backend.services.impl;
 
-import io.minio.BucketExistsArgs;
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
+import io.minio.*;
 import io.minio.http.Method;
+import io.minio.messages.Item;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Service;
 import pisio.backend.exceptions.InternalServerError;
+import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.services.FilesService;
+import pisio.common.model.DTOs.ProcessingItem;
+import pisio.common.model.enums.ProcessingProgress;
 
 import javax.annotation.PostConstruct;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +39,10 @@ public class FilesServiceImpl implements FilesService
     @Value("${finished.topic}")
     private String finishedTopic;
 
+    private final String userBucketPrefix = "user-";
+    private final String pendingDirectoryPrefix = "pending/";
+    private final String finishedDirectoryPrefix = "finished/";
+
     private MinioClient minioClient;
 
     private final KafkaTemplate<String, String> kafkaTemplate;
@@ -47,7 +54,7 @@ public class FilesServiceImpl implements FilesService
 
 
     @PostConstruct
-    void test()
+    void initMinioClient()
     {
         minioClient = MinioClient.builder()
                 .endpoint("localhost", 80, false)
@@ -55,19 +62,38 @@ public class FilesServiceImpl implements FilesService
                 .build();
     }
 
+    private String createPresignURL(String bucket, String object, int expiry, Method method)
+    {
+        try
+        {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(method)
+                            .bucket(bucket)
+                            .object(object)
+                            .expiry(expiry, TimeUnit.HOURS)
+                            .build());
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            throw new InternalServerError();
+        }
+    }
+
     @Override
-    public List<String> requestPresignUrls(List<String> files, int userID)
+    public List<String> requestPresignUrls(List<String> files, AuthenticatedUser user)
     {
         // Get presigned URL string to upload 'my-objectname' in 'my-bucketname'
         // with an expiration of 1 day.
 
         try
         {
-            if (minioClient.bucketExists(BucketExistsArgs.builder().bucket("user-" + userID).build()) == false)
+            if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(userBucketPrefix + user.getUserID()).build()) == false)
             {
                 minioClient.makeBucket(MakeBucketArgs
                         .builder()
-                        .bucket("user-" + userID).build());
+                        .bucket(userBucketPrefix + user.getUserID()).build());
             }
         }
         catch(Exception e)
@@ -82,13 +108,11 @@ public class FilesServiceImpl implements FilesService
             List<String> presignedURLs = new ArrayList<>();
             for(String f : files)
             {
-                String url = minioClient.getPresignedObjectUrl(
-                        GetPresignedObjectUrlArgs.builder()
-                                .method(Method.PUT)
-                                .bucket("user-" + userID)
-                                .object("pending/" + f)
-                                .expiry(1, TimeUnit.HOURS)
-                                .build());
+                String url = this.createPresignURL(
+                        userBucketPrefix + user.getUserID(),
+                        pendingDirectoryPrefix + f,
+                        1,
+                        Method.PUT);
                 presignedURLs.add(url);
             }
 
@@ -104,8 +128,51 @@ public class FilesServiceImpl implements FilesService
     }
 
     @Override
-    public void uploadFinishedNotification(String file, int userID)
+    @SendToUser("/queue/notifications")
+    public ProcessingItem uploadFinishedNotification(String file, AuthenticatedUser user)
     {
+        ProcessingItem item = ProcessingItem.builder().
+                itemID(null)
+                .uploadTimestamp(LocalDateTime.now())
+                .fileName(file)
+                .progress(ProcessingProgress.PENDING)
+                .build();
+
         kafkaTemplate.send(pendingTopic, file);
+
+        return item;
+    }
+
+    @Override
+    public List<String> listBucket(AuthenticatedUser user)
+    {
+        List<String> objects = new ArrayList<>();
+        Iterable<Result<Item>> results = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(userBucketPrefix + user.getUserID())
+                        .prefix(pendingDirectoryPrefix)
+                        .build());
+
+        results.forEach(obj ->
+        {
+            try
+            {
+                System.out.println(obj.get().objectName());
+                String url = this.createPresignURL(
+                        userBucketPrefix + user.getUserID(),
+                        obj.get().objectName(),
+                        1,
+                        Method.GET);
+                objects.add(url);
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+                throw new InternalServerError();
+            }
+        });
+
+
+        return objects;
     }
 }
