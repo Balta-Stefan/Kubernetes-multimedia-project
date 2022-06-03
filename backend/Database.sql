@@ -13,25 +13,28 @@ USE `media` ;
 
 
 -- -----------------------------------------------------
--- Table `media`.`Users`
+-- Table `media`.`USERS`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `media`.`Users` (
+CREATE TABLE IF NOT EXISTS `media`.`USERS` (
   `userID` INT NOT NULL AUTO_INCREMENT,
   `email` VARCHAR(45) NOT NULL,
   `username` VARCHAR(45) NOT NULL,
   `password` VARCHAR(255) NOT NULL,
   `active` TINYINT NOT NULL,
-  CONSTRAINT `users_updatedBy_FK`
-    FOREIGN KEY (`updatedBy`)
-    REFERENCES `media`.`users` (`userID`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
   PRIMARY KEY (`userID`),
   UNIQUE INDEX `username_UNIQUE` (`username` ASC) VISIBLE,
   UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
 ENGINE = InnoDB;
 
-
+CREATE TABLE IF NOT EXISTS `media`.`FILES`(
+    `fileID` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `uploadedBy` INT NOT NULL,
+    CONSTRAINT `FK_files_uploaded_by`
+        FOREIGN KEY(`uploadedBy`)
+        REFERENCES `media`.`USERS`(`userID`)
+        ON DELETE CASCADE)
+ENGINE = InnoDB;
 
 
 
