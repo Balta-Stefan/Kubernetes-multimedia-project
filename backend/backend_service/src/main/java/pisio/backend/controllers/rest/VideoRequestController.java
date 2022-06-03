@@ -35,6 +35,7 @@ public class VideoRequestController
         return userService.createUser(user);
     }
 
+    @PostMapping("/upload-finished")
     public void notifyUploadFinished(@RequestBody String file, @AuthenticationPrincipal AuthenticatedUser user)
     {
         filesService.uploadFinishedNotification(file, user);

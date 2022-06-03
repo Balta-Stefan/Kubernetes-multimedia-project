@@ -33,10 +33,10 @@ public class FilesServiceImpl implements FilesService
     @Value("${minio.secret_access_key}")
     private String secret;
 
-    @Value("${pending.topic}")
+    @Value("${pending.topic-name}")
     private String pendingTopic;
 
-    @Value("${finished.topic}")
+    @Value("${finished.topic-name}")
     private String finishedTopic;
 
     private final String userBucketPrefix = "user-";
