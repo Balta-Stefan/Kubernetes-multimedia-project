@@ -3,6 +3,7 @@ package pisio.backend.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -12,6 +13,9 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -21,21 +25,29 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
     private Integer passwordEncoderStrength;
 
     private final UserDetailsService userDetailsService;
-    private final PasswordEncoder passwordEncoder;
 
-    public SecurityConfiguration(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder)
+    public SecurityConfiguration(UserDetailsService userDetailsService)
     {
         this.userDetailsService = userDetailsService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception
     {
         http
+                .cors().configurationSource(request ->
+                {
+                    CorsConfiguration cors = new CorsConfiguration();
+                    cors.setAllowedOrigins(List.of("http://localhost:4200"));
+                    cors.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+                    cors.setAllowedHeaders(List.of("*"));
+                    return cors;
+                })
+                .and().csrf().disable()
                 .antMatcher("/api/v1/**")
-                .csrf().disable()
                 .authorizeRequests()
+                .antMatchers(HttpMethod.POST, "/api/v1/user").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/v1/session/login").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .logout(logout -> logout
@@ -65,7 +77,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
     public DaoAuthenticationProvider daoAuthenticationProvider()
     {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
         daoAuthenticationProvider.setUserDetailsService(userDetailsService);
 
         return daoAuthenticationProvider;

@@ -2,6 +2,7 @@ package pisio.backend.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -11,13 +12,14 @@ import java.util.List;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class AuthenticatedUser implements UserDetails
 {
-    private final int userID;
-    private final String username;
-    private final boolean active;
-    private final String password;
-    private final List<GrantedAuthority> authorities = Collections.emptyList();
+    private int userID;
+    private String username;
+    private boolean active;
+    private String password;
+    private List<GrantedAuthority> authorities = Collections.emptyList();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities()

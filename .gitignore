@@ -1,3 +1,4 @@
 /backend/backend_service/target/
 /backend/common/target/
 /backend/worker/target/
+/backend/backend_service/src/main/resources/static/*

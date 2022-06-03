@@ -7,12 +7,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import pisio.backend.exceptions.UnauthorizedException;
 import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.models.requests.LoginDetails;
 import pisio.backend.repositories.UsersRepository;
-import pisio.backend.services.CustomUserDetailsService;
 import pisio.backend.services.UserSessionService;
 
 @Service
@@ -20,11 +20,11 @@ import pisio.backend.services.UserSessionService;
 public class UserSessionServiceImpl implements UserSessionService
 {
     private final AuthenticationManager authenticationManager;
-    private final CustomUserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
     private final UsersRepository userRepository;
     private final ModelMapper modelMapper;
 
-    public UserSessionServiceImpl(AuthenticationManager authenticationManager, CustomUserDetailsService userDetailsService, UsersRepository userRepository, ModelMapper modelMapper)
+    public UserSessionServiceImpl(AuthenticationManager authenticationManager, UserDetailsService userDetailsService, UsersRepository userRepository, ModelMapper modelMapper)
     {
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
@@ -44,7 +44,6 @@ public class UserSessionServiceImpl implements UserSessionService
                     );
             AuthenticatedUser userDetails = (AuthenticatedUser)authentication.getPrincipal();
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
         }
         catch(BadCredentialsException badCreds)
         {

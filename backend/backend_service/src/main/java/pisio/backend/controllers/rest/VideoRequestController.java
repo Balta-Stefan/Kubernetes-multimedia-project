@@ -24,7 +24,11 @@ public class VideoRequestController
     @PostMapping("/submit")
     public void uploadFiles(MultipartFile[] files)
     {
-
+        System.out.println("Am receiving files");
+        for(MultipartFile file : files)
+        {
+            System.out.println("File received: " + file.getName());
+        }
     }
 
     @PostMapping("/user")

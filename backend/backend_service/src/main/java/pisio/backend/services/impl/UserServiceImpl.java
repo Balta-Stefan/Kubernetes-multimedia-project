@@ -11,8 +11,10 @@ import pisio.backend.services.UserService;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.transaction.Transactional;
 
 @Service
+@Transactional
 public class UserServiceImpl implements UserService
 {
     private final UsersRepository usersRepository;

@@ -3,9 +3,10 @@ package pisio.backend.models.entities;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
-@Table(name = "users")
+@Table(name = "USERS")
 @Data
 public class UserEntity
 {
@@ -29,4 +30,7 @@ public class UserEntity
     @Basic
     @Column(name = "active", nullable = false)
     private Boolean active;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<File> files;
 }
