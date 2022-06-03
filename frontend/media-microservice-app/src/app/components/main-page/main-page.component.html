@@ -1,0 +1,19 @@
+<div class="container">
+    <div class="row mb-3">
+        <form (ngSubmit)="uploadFile()">
+            <div class="mb-3">
+                <label for="formFile" class="form-label">Select videos to upload</label>
+                <input class="form-control" #fileUploadInput type="file" accept="video/mp4,video/x-m4v,video/*" id="formFileMultiple" multiple (change)="newFileChosen($event)">
+            </div>
+            <button class="btn btn-secondary" [disabled]="!newFile">Upload videos</button>
+        </form>
+    </div>
+
+    <div class="row mb-3">
+        <app-item-card
+            *ngFor="let item of items"
+            [item]="item">
+
+        </app-item-card>
+    </div>
+</div>

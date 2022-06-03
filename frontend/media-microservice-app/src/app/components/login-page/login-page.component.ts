@@ -31,7 +31,7 @@ export class LoginPageComponent implements OnInit {
     this.sessionService.login(loginRequest).subscribe({
       error: (err: any) => {
         console.log(err);
-        this.loginMessage = "Prijava neuspješna";
+        this.loginMessage = "Login unsuccessful";
       },
       next: (receivedObject: LoginDetails) => {
         this.router.navigateByUrl('');

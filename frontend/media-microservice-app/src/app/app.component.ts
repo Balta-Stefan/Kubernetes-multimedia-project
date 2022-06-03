@@ -12,8 +12,8 @@ export class AppComponent {
   title = 'media-microservice-app';
 
   constructor(sessionService: SessionService, private router: Router){
-    this.router.navigateByUrl('/login');
-    /*this.router.navigateByUrl('/session_check');
+    //this.router.navigateByUrl('');
+    this.router.navigateByUrl('/session_check');
 
     sessionService.checkSessionStatus().subscribe({
       error: (err: any) => {
@@ -22,6 +22,6 @@ export class AppComponent {
       next: (receivedValue: LoginDetails) => {
         this.router.navigateByUrl('');
       }
-    });*/
+    });
   }
 }
