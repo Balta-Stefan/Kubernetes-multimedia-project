@@ -1,11 +1,11 @@
 <div class="container">
     <div class="row mb-3">
-        <form (ngSubmit)="uploadFile()">
+        <form>
             <div class="mb-3">
                 <label for="formFile" class="form-label">Select videos to upload</label>
-                <input class="form-control" #fileUploadInput type="file" accept="video/mp4,video/x-m4v,video/*" id="formFileMultiple" multiple (change)="newFileChosen($event)">
+                <input class="form-control" #fileUploadInput type="file" accept="video/mp4,video/x-m4v, video/*m .mkv" id="formFileMultiple" multiple (change)="newFileChosen($event)">
             </div>
-            <button class="btn btn-secondary" [disabled]="!newFile">Upload videos</button>
+            <button (click)="uploadFiles()" type="button" class="btn btn-secondary" [disabled]="!newFiles">Upload videos</button>
         </form>
     </div>
 

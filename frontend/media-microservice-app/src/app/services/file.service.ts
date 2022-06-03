@@ -11,11 +11,19 @@ export class FileService {
 
   constructor(private http: HttpClient) { }
 
-  uploadFile(file: File): Observable<ProcessingItem>{
+  requestPresignURLs(files: string[]): Observable<string[]>{
+    return this.http.post<any>(`${baseURL}/presign-urls`, files);
+  }
+
+  uploadFile(url: string, file: File): Observable<any>{
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
     console.log("uploading file");
 
-    return this.http.post<any>(`${baseURL}/submit`, formData);
+    return this.http.put<any>(url, formData);
+  }
+
+  listMyBucket(): Observable<string[]>{
+    return this.http.get<any>(`${baseURL}/user/bucket`);
   }
 }
