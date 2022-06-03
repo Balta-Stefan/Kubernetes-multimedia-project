@@ -26,4 +26,8 @@ export class FileService {
   listMyBucket(): Observable<string[]>{
     return this.http.get<any>(`${baseURL}/user/bucket`);
   }
+
+  notifyUploadFinished(file: string): Observable<any>{
+    return this.http.post<any>(`${baseURL}/upload-finished`, file);
+  }
 }

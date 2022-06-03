@@ -55,7 +55,8 @@ export class MainPageComponent implements OnInit {
         },
         complete: () => {
           alert("Finished uploading the file: " + this.newFiles?.item(index)?.name);
-          this.uploadFileToObjectStorage(index++);
+          this.fileService.notifyUploadFinished(this.newFiles?.item(index)?.name!).subscribe();
+          this.uploadFileToObjectStorage(index + 1);
         }
       });
     }
@@ -78,14 +79,7 @@ export class MainPageComponent implements OnInit {
   
         this.presignedLinks = links;
   
-        this.fileService.uploadFile(links[0], this.newFiles?.item(0)!).subscribe({
-          error: (err: HttpErrorResponse) => {
-            alert("Couldn't upload file " + this.newFiles?.item(0)?.name);
-          },
-          complete: () => {
-            this.uploadFileToObjectStorage(1);
-          }
-        });
+        this.uploadFileToObjectStorage(0);
       },
       error: (err: HttpErrorResponse) => {
         alert("Couldn't get presigned URLs");
