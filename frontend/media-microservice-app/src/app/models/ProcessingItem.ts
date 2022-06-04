@@ -5,4 +5,5 @@ export interface ProcessingItem{
     uploadTimestamp: Date;
     progress: ProcessingProgress;
     fileName: string;
+    url: string;
 }
