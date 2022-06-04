@@ -14,4 +14,5 @@ public class ProcessingItem
     private LocalDateTime uploadTimestamp;
     private ProcessingProgress progress;
     private String fileName;
+    private String url;
 }
