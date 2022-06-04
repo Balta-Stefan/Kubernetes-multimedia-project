@@ -52,6 +52,10 @@ public class FilesServiceImpl implements FilesService
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    private String createUserBucketName(AuthenticatedUser user)
+    {
+        return userBucketPrefix + user.getUserID();
+    }
 
     @PostConstruct
     void initMinioClient()
@@ -89,11 +93,11 @@ public class FilesServiceImpl implements FilesService
 
         try
         {
-            if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(userBucketPrefix + user.getUserID()).build()) == false)
+            if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(createUserBucketName(user)).build()) == false)
             {
                 minioClient.makeBucket(MakeBucketArgs
                         .builder()
-                        .bucket(userBucketPrefix + user.getUserID()).build());
+                        .bucket(createUserBucketName(user)).build());
             }
         }
         catch(Exception e)
@@ -109,7 +113,7 @@ public class FilesServiceImpl implements FilesService
             for(String f : files)
             {
                 String url = this.createPresignURL(
-                        userBucketPrefix + user.getUserID(),
+                        createUserBucketName(user),
                         pendingDirectoryPrefix + f,
                         1,
                         Method.PUT);
@@ -131,8 +135,8 @@ public class FilesServiceImpl implements FilesService
     @SendToUser("/queue/notifications")
     public ProcessingItem uploadFinishedNotification(String file, AuthenticatedUser user)
     {
-        ProcessingItem item = ProcessingItem.builder().
-                itemID(null)
+        ProcessingItem item = ProcessingItem.builder()
+                .itemID(null)
                 .uploadTimestamp(LocalDateTime.now())
                 .fileName(file)
                 .progress(ProcessingProgress.PENDING)
@@ -143,14 +147,13 @@ public class FilesServiceImpl implements FilesService
         return item;
     }
 
-    @Override
-    public List<String> listBucket(AuthenticatedUser user)
+    private List<ProcessingItem> listBucketUtil(String bucket, String prefix, ProcessingProgress progress)
     {
-        List<String> objects = new ArrayList<>();
+        List<ProcessingItem> objects = new ArrayList<>();
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
-                        .bucket(userBucketPrefix + user.getUserID())
-                        .prefix(pendingDirectoryPrefix)
+                        .bucket(bucket)
+                        .prefix(prefix)
                         .build());
 
         results.forEach(obj ->
@@ -159,11 +162,20 @@ public class FilesServiceImpl implements FilesService
             {
                 System.out.println(obj.get().objectName());
                 String url = this.createPresignURL(
-                        userBucketPrefix + user.getUserID(),
+                        bucket,
                         obj.get().objectName(),
                         1,
                         Method.GET);
-                objects.add(url);
+
+                ProcessingItem item = ProcessingItem.builder()
+                        .itemID(null)
+                        .fileName(obj.get().objectName())
+                        .progress(progress)
+                        .url(url)
+                        .uploadTimestamp(obj.get().lastModified().toLocalDateTime())
+                        .build();
+
+                objects.add(item);
             }
             catch(Exception e)
             {
@@ -172,7 +184,32 @@ public class FilesServiceImpl implements FilesService
             }
         });
 
-
         return objects;
+    }
+
+    @Override
+    public List<ProcessingItem> listBucket(AuthenticatedUser user)
+    {
+        List<ProcessingItem> files = this.listBucketUtil(createUserBucketName(user), pendingDirectoryPrefix, ProcessingProgress.UNKNOWN);
+        files.addAll(this.listBucketUtil(createUserBucketName(user), finishedDirectoryPrefix, ProcessingProgress.FINISHED));
+
+        return files;
+    }
+
+    @Override
+    public void deleteObject(String object, AuthenticatedUser user)
+    {
+        try
+        {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(createUserBucketName(user))
+                            .object(object).build());
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            log.warn(e.getMessage());
+        }
     }
 }

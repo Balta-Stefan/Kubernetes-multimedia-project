@@ -6,6 +6,7 @@ import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.models.DTOs.UserDTO;
 import pisio.backend.services.FilesService;
 import pisio.backend.services.UserService;
+import pisio.common.model.DTOs.ProcessingItem;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -42,8 +43,14 @@ public class VideoRequestController
     }
 
     @GetMapping("/user/bucket")
-    public List<String> listBucket(@AuthenticationPrincipal AuthenticatedUser user)
+    public List<ProcessingItem> listBucket(@AuthenticationPrincipal AuthenticatedUser user)
     {
         return filesService.listBucket(user);
+    }
+
+    @DeleteMapping("/user")
+    public void deleteObject(@RequestParam String object, @AuthenticationPrincipal AuthenticatedUser user)
+    {
+        filesService.deleteObject(object, user);
     }
 }

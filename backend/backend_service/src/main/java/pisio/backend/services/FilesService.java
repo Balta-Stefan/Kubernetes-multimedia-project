@@ -9,5 +9,6 @@ public interface FilesService
 {
     List<String> requestPresignUrls(List<String> files, AuthenticatedUser user);
     ProcessingItem uploadFinishedNotification(String file, AuthenticatedUser user);
-    List<String> listBucket(AuthenticatedUser user);
+    List<ProcessingItem> listBucket(AuthenticatedUser user);
+    void deleteObject(String object, AuthenticatedUser user);
 }
