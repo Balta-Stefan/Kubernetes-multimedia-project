@@ -1,15 +1,16 @@
 package pisio.common.model.messages;
 
-import lombok.AllArgsConstructor;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class ExtractAudioMessage extends BaseMessage
 {
-
+    public ExtractAudioMessage(){}
+    public ExtractAudioMessage(String username, String bucket, String prefix, String file)
+    {
+        super(username, bucket, prefix, file);
+    }
 }
