@@ -2,11 +2,12 @@ package pisio.backend.services.impl;
 
 import io.minio.http.Method;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import pisio.backend.services.FilesService;
-import pisio.common.model.DTOs.ProcessingItem;
+import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.messages.BaseMessage;
 
@@ -17,6 +18,9 @@ public class KafkaService
     private final FilesService filesService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
+    @Value("${minio.presigned-url-expiration-hours}")
+    private Integer objectExpiration;
+
     public KafkaService(FilesService filesService, SimpMessagingTemplate simpMessagingTemplate)
     {
         this.filesService = filesService;
@@ -24,20 +28,25 @@ public class KafkaService
     }
 
     @KafkaListener(topics = "${finished.topic-name}", groupId = "${kafka.listener.group-id}")
-    public void listen(BaseMessage message)
+    public void listen(BaseMessage notification)
     {
-        log.info("Listener received a message: " + message);
+        log.info("Listener received a notification: ");
+        UserNotification userNotification = new UserNotification(notification.getFileName(), notification.getProgress(), null);
 
-        String presignedURL = filesService.createPresignURL(message.getBucket(), message.getFile(), 1, Method.GET);
+        if(notification.getProgress().equals(ProcessingProgress.FAILED))
+        {
+            log.warn("Processing failed");
+        }
+        else if(notification.getProgress().equals(ProcessingProgress.FINISHED))
+        {
+            String presignedURL = filesService.createPresignURL(notification.getBucket(), notification.getObject(), objectExpiration, Method.GET);
+            userNotification.setUrl(presignedURL);
+        }
+        else
+        {
+            userNotification.setProgress(ProcessingProgress.UNKNOWN);
+        }
 
-        ProcessingItem item = ProcessingItem.builder()
-                .itemID(null)
-                .uploadTimestamp(null)
-                .fileName(message.getFile())
-                .progress(ProcessingProgress.FINISHED)
-                .url(presignedURL)
-                .build();
-
-        simpMessagingTemplate.convertAndSend("/queue/notifications", item);
+        simpMessagingTemplate.convertAndSend("/queue/notifications", userNotification);
     }
 }

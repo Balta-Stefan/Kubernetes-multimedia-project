@@ -11,13 +11,13 @@ import org.springframework.stereotype.Service;
 import pisio.backend.exceptions.InternalServerError;
 import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.services.FilesService;
-import pisio.common.model.DTOs.ProcessingItem;
+import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.messages.BaseMessage;
 import pisio.common.model.messages.ExtractAudioMessage;
+import pisio.common.utils.BucketNameCreator;
 
 import javax.annotation.PostConstruct;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,10 +58,6 @@ public class FilesServiceImpl implements FilesService
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    private String createUserBucketName(AuthenticatedUser user)
-    {
-        return userBucketPrefix + user.getUserID();
-    }
 
     @PostConstruct
     void initMinioClient()
@@ -99,11 +95,11 @@ public class FilesServiceImpl implements FilesService
 
         try
         {
-            if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(createUserBucketName(user)).build()) == false)
+            if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(BucketNameCreator.createBucket(user.getUserID())).build()) == false)
             {
                 minioClient.makeBucket(MakeBucketArgs
                         .builder()
-                        .bucket(createUserBucketName(user)).build());
+                        .bucket(BucketNameCreator.createBucket(user.getUserID())).build());
             }
         }
         catch(Exception e)
@@ -119,7 +115,7 @@ public class FilesServiceImpl implements FilesService
             for(String f : files)
             {
                 String url = this.createPresignURL(
-                        createUserBucketName(user),
+                        BucketNameCreator.createBucket(user.getUserID()),
                         pendingDirectoryPrefix + f,
                         1,
                         Method.PUT);
@@ -139,29 +135,24 @@ public class FilesServiceImpl implements FilesService
 
     @Override
     @SendToUser("/queue/notifications")
-    public ProcessingItem uploadFinishedNotification(String file, AuthenticatedUser user)
+    public BaseMessage uploadFinishedNotification(String file, AuthenticatedUser user)
     {
-        ProcessingItem item = ProcessingItem.builder()
-                .itemID(null)
-                .uploadTimestamp(LocalDateTime.now())
-                .fileName(file)
-                .progress(ProcessingProgress.PENDING)
-                .build();
-
         ExtractAudioMessage msg = new ExtractAudioMessage(
+                user.getUserID(),
                 user.getUsername(),
-                createUserBucketName(user),
-                pendingDirectoryPrefix,
-                file);
+                BucketNameCreator.createBucket(user.getUserID()),
+                pendingDirectoryPrefix + file,
+                file,
+                ProcessingProgress.PENDING);
 
         kafkaTemplate.send(pendingTopic, msg);
 
-        return item;
+        return msg;
     }
 
-    private List<ProcessingItem> listBucketUtil(String bucket, String prefix, ProcessingProgress progress)
+    private List<UserNotification> listBucketUtil(String bucket, String prefix, ProcessingProgress progress)
     {
-        List<ProcessingItem> objects = new ArrayList<>();
+        List<UserNotification> objects = new ArrayList<>();
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
                         .bucket(bucket)
@@ -179,15 +170,10 @@ public class FilesServiceImpl implements FilesService
                         1,
                         Method.GET);
 
-                ProcessingItem item = ProcessingItem.builder()
-                        .itemID(null)
-                        .fileName(obj.get().objectName())
-                        .progress(progress)
-                        .url(url)
-                        .uploadTimestamp(obj.get().lastModified().toLocalDateTime())
-                        .build();
+                String fileName = obj.get().objectName().replace(prefix, "");
 
-                objects.add(item);
+                UserNotification notification = new UserNotification(fileName, progress, url);
+                objects.add(notification);
             }
             catch(Exception e)
             {
@@ -200,7 +186,7 @@ public class FilesServiceImpl implements FilesService
     }
 
     @Override
-    public List<ProcessingItem> listBucket(AuthenticatedUser user)
+    public List<UserNotification> listBucket(AuthenticatedUser user)
     {
         return Collections.emptyList();
         /*List<ProcessingItem> files = this.listBucketUtil(createUserBucketName(user), pendingDirectoryPrefix, ProcessingProgress.UNKNOWN);
@@ -216,7 +202,7 @@ public class FilesServiceImpl implements FilesService
         {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
-                            .bucket(createUserBucketName(user))
+                            .bucket(BucketNameCreator.createBucket(user.getUserID()))
                             .object(object).build());
         }
         catch(Exception e)
