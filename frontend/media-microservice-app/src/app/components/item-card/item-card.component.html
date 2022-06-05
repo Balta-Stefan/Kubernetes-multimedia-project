@@ -1,5 +1,4 @@
 <div class="row item-card">
-    <p><b>Upload timestamp:</b> {{item.uploadTimestamp}}</p>
     <p><b>File name:</b> {{item.fileName}}</p>
 
     <button (click)="buttonClick()" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">

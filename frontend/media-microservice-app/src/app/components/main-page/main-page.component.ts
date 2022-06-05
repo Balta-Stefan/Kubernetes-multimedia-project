@@ -1,38 +1,28 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { ProcessingItem } from 'src/app/models/ProcessingItem';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ProcessingProgress } from 'src/app/models/ProcessingProgress';
 import { FileService } from 'src/app/services/file.service';
+import { StompService } from 'src/app/services/stomp.service';
+import { Message } from '@stomp/stompjs';
+import { Subscription } from 'rxjs';
+import { Notification } from 'src/app/models/Notification';
 
 @Component({
   selector: 'app-main-page',
   templateUrl: './main-page.component.html',
   styleUrls: ['./main-page.component.css']
 })
-export class MainPageComponent implements OnInit {
-  items: ProcessingItem[] = [];
+export class MainPageComponent implements OnInit, OnDestroy {
+  items: Notification[] = [];
 
   newFiles: FileList | null = null;
   presignedLinks: string[] | null = null;
 
+  queueSubscription!: Subscription;
+
   @ViewChild('fileUploadInput') fileUploadInput!: ElementRef;
 
-  constructor(private fileService: FileService) {
-    /*let item1: ProcessingItem = {
-      fileName: "file 1",
-      itemID: 1,
-      progress: ProcessingProgress.PROCESSING,
-      uploadTimestamp: new Date()
-    };
-    let item2: ProcessingItem = {
-      fileName: "file 2",
-      itemID: 2,
-      progress: ProcessingProgress.FAILED,
-      uploadTimestamp: new Date()
-    };
-
-    this.items.push(item1);
-    this.items.push(item2);*/
+  constructor(private fileService: FileService, private stompService: StompService) {
     this.fileService.listMyBucket().subscribe({
       error: (err: HttpErrorResponse) => {
         console.log("couldnt list my bucket");
@@ -43,19 +33,54 @@ export class MainPageComponent implements OnInit {
       }
     });
   }
+  ngOnDestroy(): void {
+    this.queueSubscription.unsubscribe();
+  }
 
   ngOnInit(): void {
+    this.stompService.connected$.subscribe(val => {
+      console.log("inside connected block, val=");
+      console.log(val);
+      console.log("Inside connected block, connected=" + this.stompService.connected());
+      this.queueSubscription = this.stompService.watch("/topic/notifications").subscribe((msg: Message) => {
+        console.log("received a message: ");
+        console.log(msg);
+        console.log("the body is:");
+
+        const notification: Notification = JSON.parse(msg.body);
+        console.log(notification);
+        console.log("==================");
+
+        for(let i = 0; i < this.items.length; i++){
+          const item: Notification = this.items[i];
+          if(item.fileName == notification.fileName){
+            item.progress = notification.progress;
+            item.url = notification.url;
+          }
+        }
+      });
+    });
+    
   }
 
   private uploadFileToObjectStorage(index: number): void{
     if(this.presignedLinks && this.presignedLinks.length > index){
+      const tmpItem: Notification = {
+        progress: ProcessingProgress.UPLOADING,
+        fileName: this.newFiles?.item(index)?.name!,
+        url: null
+      };
+      this.items.push(tmpItem);
+
       this.fileService.uploadFile(this.presignedLinks[index], this.newFiles?.item(index)!).subscribe({
         error: (err: HttpErrorResponse) => {
           alert("Couldn't upload file " + this.newFiles?.item(index)?.name);
+          this.items[index].progress = ProcessingProgress.FAILED;
         },
         complete: () => {
           alert("Finished uploading the file: " + this.newFiles?.item(index)?.name);
           this.fileService.notifyUploadFinished(this.newFiles?.item(index)?.name!).subscribe();
+          this.items[index].progress = ProcessingProgress.PENDING;
           this.uploadFileToObjectStorage(index + 1);
         }
       });

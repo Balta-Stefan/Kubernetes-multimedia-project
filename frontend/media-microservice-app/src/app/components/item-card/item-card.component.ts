@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { ProcessingItem } from 'src/app/models/ProcessingItem';
+import { Notification } from 'src/app/models/Notification';
 
 @Component({
   selector: 'app-item-card',
@@ -7,7 +7,7 @@ import { ProcessingItem } from 'src/app/models/ProcessingItem';
   styleUrls: ['./item-card.component.css']
 })
 export class ItemCardComponent implements OnInit {
-  @Input() item!: ProcessingItem;
+  @Input() item!: Notification;
 
   constructor() { }
 
