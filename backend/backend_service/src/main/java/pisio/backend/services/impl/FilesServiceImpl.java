@@ -13,10 +13,13 @@ import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.services.FilesService;
 import pisio.common.model.DTOs.ProcessingItem;
 import pisio.common.model.enums.ProcessingProgress;
+import pisio.common.model.messages.BaseMessage;
+import pisio.common.model.messages.ExtractAudioMessage;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -25,7 +28,10 @@ import java.util.concurrent.TimeUnit;
 public class FilesServiceImpl implements FilesService
 {
     @Value("${minio.endpoint}")
-    private String endpoint;
+    private String minioEndpoint;
+
+    @Value("${minio.port}")
+    private int minioEndpointPort;
 
     @Value("${minio.access_key}")
     private String accessKey;
@@ -45,9 +51,9 @@ public class FilesServiceImpl implements FilesService
 
     private MinioClient minioClient;
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, BaseMessage> kafkaTemplate;
 
-    public FilesServiceImpl(KafkaTemplate<String, String> kafkaTemplate)
+    public FilesServiceImpl(KafkaTemplate<String, BaseMessage> kafkaTemplate)
     {
         this.kafkaTemplate = kafkaTemplate;
     }
@@ -61,12 +67,12 @@ public class FilesServiceImpl implements FilesService
     void initMinioClient()
     {
         minioClient = MinioClient.builder()
-                .endpoint("localhost", 80, false)
+                .endpoint(minioEndpoint, minioEndpointPort, false)
                 .credentials(accessKey, secret)
                 .build();
     }
-
-    private String createPresignURL(String bucket, String object, int expiry, Method method)
+    @Override
+    public String createPresignURL(String bucket, String object, int expiryHours, Method method)
     {
         try
         {
@@ -75,7 +81,7 @@ public class FilesServiceImpl implements FilesService
                             .method(method)
                             .bucket(bucket)
                             .object(object)
-                            .expiry(expiry, TimeUnit.HOURS)
+                            .expiry(expiryHours, TimeUnit.HOURS)
                             .build());
         }
         catch(Exception e)
@@ -142,7 +148,13 @@ public class FilesServiceImpl implements FilesService
                 .progress(ProcessingProgress.PENDING)
                 .build();
 
-        kafkaTemplate.send(pendingTopic, file);
+        ExtractAudioMessage msg = new ExtractAudioMessage(
+                user.getUsername(),
+                createUserBucketName(user),
+                pendingDirectoryPrefix,
+                file);
+
+        kafkaTemplate.send(pendingTopic, msg);
 
         return item;
     }
@@ -190,10 +202,11 @@ public class FilesServiceImpl implements FilesService
     @Override
     public List<ProcessingItem> listBucket(AuthenticatedUser user)
     {
-        List<ProcessingItem> files = this.listBucketUtil(createUserBucketName(user), pendingDirectoryPrefix, ProcessingProgress.UNKNOWN);
+        return Collections.emptyList();
+        /*List<ProcessingItem> files = this.listBucketUtil(createUserBucketName(user), pendingDirectoryPrefix, ProcessingProgress.UNKNOWN);
         files.addAll(this.listBucketUtil(createUserBucketName(user), finishedDirectoryPrefix, ProcessingProgress.FINISHED));
 
-        return files;
+        return files;*/
     }
 
     @Override
