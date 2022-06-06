@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Notification } from 'src/app/models/Notification';
 
 @Component({
@@ -8,7 +8,6 @@ import { Notification } from 'src/app/models/Notification';
 })
 export class ItemCardComponent implements OnInit {
   @Input() item!: Notification;
-  @Output() deleteItemEvent = new EventEmitter<Notification>();
 
   constructor() { }
 
