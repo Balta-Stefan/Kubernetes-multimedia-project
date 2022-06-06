@@ -17,7 +17,6 @@ import pisio.common.model.messages.BaseMessage;
 import pisio.common.model.messages.ExtractAudioMessage;
 import pisio.common.utils.BucketNameCreator;
 
-import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,18 +26,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class FilesServiceImpl implements FilesService
 {
-    @Value("${minio.endpoint}")
-    private String minioEndpoint;
-
-    @Value("${minio.port}")
-    private int minioEndpointPort;
-
-    @Value("${minio.access_key}")
-    private String accessKey;
-
-    @Value("${minio.secret_access_key}")
-    private String secret;
-
     @Value("${pending.topic-name}")
     private String pendingTopic;
 
@@ -49,24 +36,17 @@ public class FilesServiceImpl implements FilesService
     private final String pendingDirectoryPrefix = "pending/";
     private final String finishedDirectoryPrefix = "finished/";
 
-    private MinioClient minioClient;
+    private final MinioClient minioClient;
 
     private final KafkaTemplate<String, BaseMessage> kafkaTemplate;
 
-    public FilesServiceImpl(KafkaTemplate<String, BaseMessage> kafkaTemplate)
+    public FilesServiceImpl(MinioClient minioClient, KafkaTemplate<String, BaseMessage> kafkaTemplate)
     {
+        this.minioClient = minioClient;
         this.kafkaTemplate = kafkaTemplate;
     }
 
 
-    @PostConstruct
-    void initMinioClient()
-    {
-        minioClient = MinioClient.builder()
-                .endpoint(minioEndpoint, minioEndpointPort, false)
-                .credentials(accessKey, secret)
-                .build();
-    }
     @Override
     public String createPresignURL(String bucket, String object, int expiryHours, Method method)
     {
