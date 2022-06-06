@@ -1,7 +1,7 @@
 <div class="row item-card">
     <p><b>File name:</b> {{item.fileName}}</p>
 
-    <button (click)="buttonClick()" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">
+    <button (click)="download()" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">
         <span *ngIf="item.progress != 'FINISHED' && item.progress != 'FAILED'" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         {{item.progress == 'FINISHED' ? 'Download' : item.progress}}
     </button>
