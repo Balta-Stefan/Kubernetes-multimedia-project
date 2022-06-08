@@ -16,6 +16,7 @@ import pisio.common.model.messages.Transcode;
 import pisio.worker.services.VideoService;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +28,9 @@ public class KafkaWorker
     private final KafkaTemplate<String, BaseMessage> kafkaTemplate;
     @Value("${finished.topic-name}")
     private String finishedTopicName;
+
+    @Value("${prefix.finished}")
+    private String finishedDirectoryPrefix;
     private final VideoService videoService;
 
     private final MinioClient minioClient;
@@ -40,7 +44,15 @@ public class KafkaWorker
 
     private Optional<String> downloadFile(String bucket, String object)
     {
-        String fileName = UUID.randomUUID().toString();
+        int dotIndex = object.lastIndexOf(".");
+        String fileExtension = "";
+
+        if(dotIndex != -1)
+        {
+            fileExtension = object.substring(dotIndex);
+        }
+        String fileName = UUID.randomUUID().toString().replace("-", "") + fileExtension;
+        log.info("Generated file name is: " + fileName);
 
         try
         {
@@ -50,6 +62,8 @@ public class KafkaWorker
                             .object(object)
                             .filename(fileName)
                             .build());
+
+            return Optional.of(fileName);
         }
         catch(Exception e)
         {
@@ -57,8 +71,6 @@ public class KafkaWorker
             e.printStackTrace();
             return Optional.of(fileName);
         }
-
-        return Optional.empty();
     }
 
     private boolean uploadFile(String bucket, String fileName, String filePath)
@@ -67,7 +79,7 @@ public class KafkaWorker
         {
             minioClient.uploadObject(
                     UploadObjectArgs.builder()
-                            .bucket(bucket).object("finished/" + fileName)
+                            .bucket(bucket).object(finishedDirectoryPrefix + fileName)
                             .filename(filePath)
                             .build());
         }
@@ -82,16 +94,17 @@ public class KafkaWorker
     }
 
 
-
     private void handleProcessedFile(BaseMessage msg, Optional<String> outputFilePathOpt)
     {
         BaseMessage response = new BaseMessage(msg);
         response.setProgress(ProcessingProgress.FAILED);
+        response.setObject(null);
 
         String outputFilePath;
         if(outputFilePathOpt.isEmpty())
         {
             kafkaTemplate.send(finishedTopicName, response);
+            log.warn("Media worker hasn't received output file of the ffmpeg class");
             return;
         }
         else
@@ -99,9 +112,12 @@ public class KafkaWorker
             outputFilePath = outputFilePathOpt.get();
         }
 
-        if(uploadFile(msg.getBucket(), msg.getFileName(), outputFilePath) == true)
+        String finishedObjectName = finishedDirectoryPrefix + msg.getFileName();
+
+        if(uploadFile(msg.getBucket(), finishedObjectName, outputFilePath) == true)
         {
             response.setProgress(ProcessingProgress.FINISHED);
+            response.setObject(finishedObjectName);
 
             File file = new File(outputFilePath);
             if(file.delete() == false)
@@ -115,11 +131,13 @@ public class KafkaWorker
         }
 
         kafkaTemplate.send(finishedTopicName, response);
+        log.info("Worker has sent kafka message with progress: " + response.getProgress().name());
     }
 
     @KafkaHandler
     public void extractAudio(ExtractAudioMessage msg)
     {
+        log.info("Worker has received an extract audio message with object" + msg.getObject());
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
             handleProcessedFile(msg, videoService.extractAudio(downloadedFilePath));
@@ -129,6 +147,8 @@ public class KafkaWorker
     @KafkaHandler
     public void transcodeVideo(Transcode msg)
     {
+        log.info("Worker has received a transcode video message with file" + msg.getFileName());
+        log.info("Transcode resolution: " + msg.getTargetResolution());
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
             handleProcessedFile(msg, videoService.transcode(downloadedFilePath, msg.getTargetResolution()));
