@@ -1,22 +1,26 @@
 package pisio.backend.models.DTOs;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserDTO
 {
-    private final int userID;
+    private int userID;
 
     @NotBlank
-    private final String username;
+    private String username;
 
     @NotBlank
-    private final String password;
+    private String password;
 
     @NotBlank
-    private final String email;
+    private String email;
 
-    private final boolean active;
+    private boolean active;
 }
