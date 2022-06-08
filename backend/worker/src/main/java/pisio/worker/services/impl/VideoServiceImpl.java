@@ -2,7 +2,7 @@ package pisio.worker.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import pisio.common.model.enums.Resolutions;
+import pisio.common.model.DTOs.Resolution;
 import pisio.worker.services.VideoService;
 
 import java.io.File;
@@ -20,6 +20,8 @@ public class VideoServiceImpl implements VideoService
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
         pb.inheritIO();
+
+        log.info("Video processor has received command: " + command);
 
         try
         {
@@ -40,6 +42,11 @@ public class VideoServiceImpl implements VideoService
                 {
                     return Optional.empty();
                 }
+            }
+            else
+            {
+                log.info("VideoService is outputting to file: " + outputFilePath);
+                return Optional.of(outputFilePath);
             }
         }
         catch (InterruptedException | IOException | ExecutionException e)
@@ -67,7 +74,7 @@ public class VideoServiceImpl implements VideoService
         return outputPath;
     }
     @Override
-    public Optional<String> transcode(String inputFilePath, Resolutions targetResolution)
+    public Optional<String> transcode(String inputFilePath, Resolution targetResolution)
     {
         String outputPath = changeFileExtension(inputFilePath, "mp4");
 
