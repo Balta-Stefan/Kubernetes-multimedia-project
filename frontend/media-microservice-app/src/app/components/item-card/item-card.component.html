@@ -1,8 +1,10 @@
 <div class="row item-card">
     <p><b>File name:</b> {{item.fileName}}</p>
 
-    <button (click)="download()" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">
+    <button *ngif="item.progress != null && item.progress != 'FINISHED'" (click)="download()" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">
         <span *ngIf="item.progress != 'FINISHED' && item.progress != 'FAILED'" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         {{item.progress == 'FINISHED' ? 'Download' : item.progress}}
     </button>
+    <a *ngIf="item.progress == 'FINISHED'" type="button" class="btn btn-primary" [href]="item.url" download>Download</a>
+    <button class="btn btn-danger" (click)="removeFile()">Remove</button>
 </div>

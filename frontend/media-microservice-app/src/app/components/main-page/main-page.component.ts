@@ -6,6 +6,8 @@ import { StompService } from 'src/app/services/stomp.service';
 import { Message } from '@stomp/stompjs';
 import { Subscription } from 'rxjs';
 import { Notification } from 'src/app/models/Notification';
+import { Resolution } from 'src/app/models/Resolution';
+import { ProcessingRequest } from 'src/app/models/ProcessingRequest';
 
 @Component({
   selector: 'app-main-page',
@@ -15,10 +17,16 @@ import { Notification } from 'src/app/models/Notification';
 export class MainPageComponent implements OnInit, OnDestroy {
   items: Notification[] = [];
 
-  newFiles: FileList | null = null;
+  filesToUpload: File[] = [];
   presignedLinks: string[] | null = null;
 
   queueSubscription!: Subscription;
+
+  extractAudio: boolean = false;
+  targetResolutionWidth!: number;
+  targetResolutionHeight!: number;
+
+  processingStarted: boolean = false;
 
   @ViewChild('fileUploadInput') fileUploadInput!: ElementRef;
 
@@ -32,7 +40,10 @@ export class MainPageComponent implements OnInit, OnDestroy {
         console.log(items);
       }
     });
+
+    
   }
+
   ngOnDestroy(): void {
     this.queueSubscription.unsubscribe();
   }
@@ -65,14 +76,33 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
   private uploadFileToObjectStorage(index: number): void{
     if(this.presignedLinks && this.presignedLinks.length > index){
-      const tmpItem: Notification = {
-        progress: ProcessingProgress.UPLOADING,
-        fileName: this.newFiles?.item(index)?.name!,
-        url: null
-      };
-      this.items.push(tmpItem);
+      this.items[index].progress = ProcessingProgress.UPLOADING;
 
-      this.fileService.uploadFile(this.presignedLinks[index], this.newFiles?.item(index)!).subscribe({
+      this.fileService.uploadFile(this.presignedLinks[index], this.filesToUpload[index])
+      .then(() => {
+        alert("Finished uploading the file: " + this.filesToUpload[index].name);
+
+        const fileName: string = this.filesToUpload[index].name;
+
+        const req: ProcessingRequest = {
+          extractAudio: this.extractAudio,
+          targetResolution: {
+            width: this.targetResolutionWidth,
+            height: this.targetResolutionHeight
+          },
+          file: fileName
+        };
+
+        this.fileService.notifyUploadFinished(req).subscribe(() => this.processingStarted = true);
+        this.items[index].progress = ProcessingProgress.PENDING;
+        this.uploadFileToObjectStorage(index + 1);
+      }).catch((e) => {
+        alert("Couldn't upload file to object storage");
+        console.log(e);
+        this.items[index].progress = ProcessingProgress.FAILED;
+      });
+
+      /*this.fileService.uploadFile(this.presignedLinks[index], this.newFiles?.item(index)!).subscribe({
         error: (err: HttpErrorResponse) => {
           alert("Couldn't upload file " + this.newFiles?.item(index)?.name);
           this.items[index].progress = ProcessingProgress.FAILED;
@@ -83,18 +113,29 @@ export class MainPageComponent implements OnInit, OnDestroy {
           this.items[index].progress = ProcessingProgress.PENDING;
           this.uploadFileToObjectStorage(index + 1);
         }
-      });
+      });*/
+    }
+    else{
+      this.filesToUpload = [];
     }
   }
 
   uploadFiles(): void{
+    if(this.items.length == 0){
+      alert("You must select files first!");
+      return;
+    }
+    else if(!this.extractAudio && !this.targetResolutionWidth && !this.targetResolutionHeight){
+      alert("You must select an operation to perform!");
+      return;
+    }
+
     console.log("main page upload file");
     const files: string[] = [];
-    if(this.newFiles){
-      for(let i = 0; i < this.newFiles.length; i++){
-        files.push(this.newFiles.item(i)?.name!);
-      }
+    for(let i = 0; i < this.filesToUpload.length; i++){
+      files.push(this.filesToUpload[i].name!);
     }
+    
 
 
     this.fileService.requestPresignURLs(files).subscribe({
@@ -123,8 +164,40 @@ export class MainPageComponent implements OnInit, OnDestroy {
     });*/
   }
 
-  newFileChosen(event: Event): void{
+  newFilesChosen(event: Event): void{
     const target = event.target as HTMLInputElement;
-    this.newFiles = target.files as FileList;
+    const fileList: FileList = target.files as FileList;
+    for(let i = 0; i < fileList.length; i++){
+      const tempFile: File = fileList.item(i)!;
+      this.filesToUpload.push(tempFile);
+
+      const newItem: Notification = {
+        fileName: tempFile.name,
+        progress: null,
+        url: null
+      };
+
+      this.items.push(newItem);
+    }
+  }
+
+  fileRemoved(item: Notification): void{
+    if(item.progress != null){
+      // the item has been uploaded, send a request to the server to delete it
+      this.fileService.deleteFile(item.fileName).subscribe();
+    }
+    else{
+      this.filesToUpload = this.filesToUpload.filter(i => i.name != item.fileName);
+    }
+
+    this.items = this.items.filter(i => i.fileName != item.fileName);
+  }
+
+  stopProcessing(): void{
+    this.items.forEach(item => {
+      this.fileService.stopProcessing(item.fileName).subscribe();
+    });
+
+    this.items = [];
   }
 }
