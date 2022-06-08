@@ -6,6 +6,7 @@ import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.models.DTOs.UserDTO;
 import pisio.backend.services.FilesService;
 import pisio.backend.services.UserService;
+import pisio.common.model.DTOs.ProcessingRequest;
 import pisio.common.model.DTOs.UserNotification;
 
 import javax.validation.Valid;
@@ -37,9 +38,9 @@ public class VideoRequestController
     }
 
     @PostMapping("/upload-finished")
-    public void notifyUploadFinished(@RequestBody String file, @AuthenticationPrincipal AuthenticatedUser user)
+    public void notifyUploadFinished(@RequestBody ProcessingRequest request, @AuthenticationPrincipal AuthenticatedUser user)
     {
-        filesService.uploadFinishedNotification(file, user);
+        filesService.uploadFinishedNotification(request, user);
     }
 
     @GetMapping("/user/bucket")
@@ -48,9 +49,15 @@ public class VideoRequestController
         return filesService.listBucket(user);
     }
 
-    @DeleteMapping("/user")
-    public void deleteObject(@RequestParam String object, @AuthenticationPrincipal AuthenticatedUser user)
+    @DeleteMapping("/file/{fileName}")
+    public void deleteObject(@PathVariable String fileName, @AuthenticationPrincipal AuthenticatedUser user)
     {
-        filesService.deleteObject(object, user);
+        filesService.deleteObject(fileName, user);
+    }
+
+    @DeleteMapping("/processing/{file}")
+    public void stopProcessing(@PathVariable String file, @AuthenticationPrincipal AuthenticatedUser user)
+    {
+        this.filesService.stopProcessing(file, user);
     }
 }
