@@ -14,4 +14,9 @@ public class ExtractAudioMessage extends BaseMessage
     {
         super(userID, username, bucket, object, fileName, progress);
     }
+
+    public ExtractAudioMessage(BaseMessage msg)
+    {
+        super(msg);
+    }
 }

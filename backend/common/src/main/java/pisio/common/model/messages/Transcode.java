@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import pisio.common.model.enums.Resolutions;
+import pisio.common.model.DTOs.Resolution;
+import pisio.common.model.enums.ProcessingProgress;
 
 @Data
 @AllArgsConstructor
@@ -12,5 +13,16 @@ import pisio.common.model.enums.Resolutions;
 @EqualsAndHashCode(callSuper = true)
 public class Transcode extends BaseMessage
 {
-    private Resolutions targetResolution;
+    private Resolution targetResolution;
+
+    public Transcode(Integer userID, String username, String bucket, String object, String fileName, ProcessingProgress progress, Resolution targetResolution)
+    {
+        super(userID, username, bucket, object, fileName, progress);
+        this.targetResolution = targetResolution;
+    }
+
+    public Transcode(BaseMessage msg)
+    {
+        super(msg);
+    }
 }
