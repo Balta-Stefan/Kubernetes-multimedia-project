@@ -8,18 +8,19 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Service;
+import pisio.backend.exceptions.BadRequestException;
 import pisio.backend.exceptions.InternalServerError;
 import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.services.FilesService;
+import pisio.common.model.DTOs.ProcessingRequest;
 import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.messages.BaseMessage;
 import pisio.common.model.messages.ExtractAudioMessage;
+import pisio.common.model.messages.Transcode;
 import pisio.common.utils.BucketNameCreator;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -52,11 +53,15 @@ public class FilesServiceImpl implements FilesService
     {
         try
         {
+            Map<String, String> extraQueryParams = (method.equals(Method.GET) ?
+                    Map.of("response-content-disposition", "attachment") : Collections.emptyMap());
+
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(method)
                             .bucket(bucket)
                             .object(object)
+                            .extraQueryParams(extraQueryParams)
                             .expiry(expiryHours, TimeUnit.HOURS)
                             .build());
         }
@@ -115,19 +120,38 @@ public class FilesServiceImpl implements FilesService
 
     @Override
     @SendToUser("/queue/notifications")
-    public BaseMessage uploadFinishedNotification(String file, AuthenticatedUser user)
+    public void uploadFinishedNotification(ProcessingRequest request, AuthenticatedUser user)
     {
-        ExtractAudioMessage msg = new ExtractAudioMessage(
-                user.getUserID(),
+        int sentMessages = 0;
+
+        BaseMessage baseMessage = new BaseMessage(user.getUserID(),
                 user.getUsername(),
                 BucketNameCreator.createBucket(user.getUserID()),
-                pendingDirectoryPrefix + file,
-                file,
+                pendingDirectoryPrefix + request.getFile(),
+                request.getFile(),
                 ProcessingProgress.PENDING);
 
-        kafkaTemplate.send(pendingTopic, msg);
+        if(request.isExtractAudio())
+        {
+            ExtractAudioMessage tempMsg = new ExtractAudioMessage(baseMessage);
+            sentMessages++;
+            kafkaTemplate.send(pendingTopic, tempMsg);
+        }
+        if(request.getTargetResolution() != null)
+        {
+            Transcode tempMsg = new Transcode(baseMessage);
+            tempMsg.setTargetResolution(request.getTargetResolution());
+            log.info("Backend has received resolution: " + request.getTargetResolution().toString());
+            kafkaTemplate.send(pendingTopic, tempMsg);
 
-        return msg;
+            sentMessages++;
+        }
+
+        if(sentMessages == 0)
+        {
+            throw new BadRequestException();
+        }
+
     }
 
     private List<UserNotification> listBucketUtil(String bucket, String prefix, ProcessingProgress progress)
@@ -149,7 +173,6 @@ public class FilesServiceImpl implements FilesService
                         obj.get().objectName(),
                         1,
                         Method.GET);
-
                 String fileName = obj.get().objectName().replace(prefix, "");
 
                 UserNotification notification = new UserNotification(fileName, progress, url);
@@ -168,27 +191,42 @@ public class FilesServiceImpl implements FilesService
     @Override
     public List<UserNotification> listBucket(AuthenticatedUser user)
     {
-        return Collections.emptyList();
-        /*List<ProcessingItem> files = this.listBucketUtil(createUserBucketName(user), pendingDirectoryPrefix, ProcessingProgress.UNKNOWN);
-        files.addAll(this.listBucketUtil(createUserBucketName(user), finishedDirectoryPrefix, ProcessingProgress.FINISHED));
+        List<UserNotification> files = this.listBucketUtil(BucketNameCreator.createBucket(user.getUserID()), pendingDirectoryPrefix, ProcessingProgress.UNKNOWN);
+        files.addAll(this.listBucketUtil(BucketNameCreator.createBucket(user.getUserID()), finishedDirectoryPrefix, ProcessingProgress.FINISHED));
 
-        return files;*/
+        return files;
     }
 
+
     @Override
-    public void deleteObject(String object, AuthenticatedUser user)
+    public boolean deleteObject(String object, AuthenticatedUser user)
     {
         try
         {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(BucketNameCreator.createBucket(user.getUserID()))
-                            .object(object).build());
+                            .object(object)
+                            .build());
+            return true;
         }
         catch(Exception e)
         {
             e.printStackTrace();
             log.warn(e.getMessage());
+            return false;
         }
+    }
+
+    @Override
+    public void stopProcessing(String file, AuthenticatedUser user)
+    {
+        this.deleteObject(pendingDirectoryPrefix + file, user);
+        if(this.deleteObject(finishedDirectoryPrefix + file, user) == false)
+        {
+            // the object hasn't been processed, send a delete message
+
+        }
+
     }
 }
