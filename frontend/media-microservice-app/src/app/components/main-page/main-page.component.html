@@ -29,7 +29,7 @@
         <app-item-card
             *ngFor="let item of items"
             [item]="item"
-            (fileRemoved)="fileRemoved($event)">
+            [newNotificationHandler]="newNotificationSubject.asObservable()">
 
         </app-item-card>
     </div>

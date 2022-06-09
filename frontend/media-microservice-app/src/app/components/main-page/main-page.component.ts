@@ -4,10 +4,11 @@ import { ProcessingProgress } from 'src/app/models/ProcessingProgress';
 import { FileService } from 'src/app/services/file.service';
 import { StompService } from 'src/app/services/stomp.service';
 import { Message } from '@stomp/stompjs';
-import { Subscription } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { Notification } from 'src/app/models/Notification';
-import { Resolution } from 'src/app/models/Resolution';
 import { ProcessingRequest } from 'src/app/models/ProcessingRequest';
+import { ProcessingType } from 'src/app/models/ProcessingType';
+import { ProcessingItem } from 'src/app/models/ProcessingItem';
 
 @Component({
   selector: 'app-main-page',
@@ -15,7 +16,7 @@ import { ProcessingRequest } from 'src/app/models/ProcessingRequest';
   styleUrls: ['./main-page.component.css']
 })
 export class MainPageComponent implements OnInit, OnDestroy {
-  items: Notification[] = [];
+  items: ProcessingItem[] = [];
 
   filesToUpload: File[] = [];
   presignedLinks: string[] | null = null;
@@ -27,6 +28,8 @@ export class MainPageComponent implements OnInit, OnDestroy {
   targetResolutionHeight!: number;
 
   processingStarted: boolean = false;
+
+  newNotificationSubject: Subject<Notification> = new Subject<Notification>();
 
   @ViewChild('fileUploadInput') fileUploadInput!: ElementRef;
 
@@ -62,13 +65,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
         console.log(notification);
         console.log("==================");
 
-        for(let i = 0; i < this.items.length; i++){
-          const item: Notification = this.items[i];
-          if(item.fileName == notification.fileName){
-            item.progress = notification.progress;
-            item.url = notification.url;
-          }
-        }
+        this.newNotificationSubject.next(notification);
       });
     });
     
@@ -76,7 +73,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
   private uploadFileToObjectStorage(index: number): void{
     if(this.presignedLinks && this.presignedLinks.length > index){
-      this.items[index].progress = ProcessingProgress.UPLOADING;
+      this.items[index].notifications.forEach(n => n.progress = ProcessingProgress.UPLOADING);
 
       this.fileService.uploadFile(this.presignedLinks[index], this.filesToUpload[index])
       .then(() => {
@@ -94,12 +91,12 @@ export class MainPageComponent implements OnInit, OnDestroy {
         };
 
         this.fileService.notifyUploadFinished(req).subscribe(() => this.processingStarted = true);
-        this.items[index].progress = ProcessingProgress.PENDING;
+        this.items[index].notifications.forEach(n => n.progress = ProcessingProgress.PENDING);
         this.uploadFileToObjectStorage(index + 1);
       }).catch((e) => {
         alert("Couldn't upload file to object storage");
         console.log(e);
-        this.items[index].progress = ProcessingProgress.FAILED;
+        this.items[index].notifications.forEach(n => n.progress = ProcessingProgress.FAILED);
       });
 
       /*this.fileService.uploadFile(this.presignedLinks[index], this.newFiles?.item(index)!).subscribe({
@@ -171,31 +168,40 @@ export class MainPageComponent implements OnInit, OnDestroy {
       const tempFile: File = fileList.item(i)!;
       this.filesToUpload.push(tempFile);
 
-      const newItem: Notification = {
-        fileName: tempFile.name,
-        progress: null,
-        url: null
+      const fileNotifications: Notification[] = [];
+      if(this.extractAudio == true){
+        const extractAudioItem: Notification = {
+          fileName: tempFile.name,
+          progress: null,
+          url: null,
+          type: ProcessingType.EXTRACT_AUDIO
+        };
+  
+        fileNotifications.push(extractAudioItem);
+      }
+      if(this.targetResolutionWidth && this.targetResolutionHeight){
+        const transcodeItem: Notification = {
+          fileName: tempFile.name,
+          progress: null,
+          url: null,
+          type: ProcessingType.TRANSCODE
+        };
+  
+        fileNotifications.push(transcodeItem);
+      }
+
+      const processingItem: ProcessingItem = {
+        file: tempFile.name,
+        notifications: fileNotifications
       };
 
-      this.items.push(newItem);
+      this.items.push(processingItem);
     }
-  }
-
-  fileRemoved(item: Notification): void{
-    if(item.progress != null){
-      // the item has been uploaded, send a request to the server to delete it
-      this.fileService.deleteFile(item.fileName).subscribe();
-    }
-    else{
-      this.filesToUpload = this.filesToUpload.filter(i => i.name != item.fileName);
-    }
-
-    this.items = this.items.filter(i => i.fileName != item.fileName);
   }
 
   stopProcessing(): void{
     this.items.forEach(item => {
-      this.fileService.stopProcessing(item.fileName).subscribe();
+      this.fileService.stopProcessing(item.file).subscribe();
     });
 
     this.items = [];

@@ -1,10 +1,26 @@
 <div class="row item-card">
-    <p><b>File name:</b> {{item.fileName}}</p>
+    <p><b>File name:</b> {{item.file}}</p>
 
-    <button *ngif="item.progress != null && item.progress != 'FINISHED'" (click)="download()" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">
-        <span *ngIf="item.progress != 'FINISHED' && item.progress != 'FAILED'" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        {{item.progress == 'FINISHED' ? 'Download' : item.progress}}
-    </button>
-    <a *ngIf="item.progress == 'FINISHED'" type="button" class="btn btn-primary" [href]="item.url" download>Download</a>
-    <button class="btn btn-danger" (click)="removeFile()">Remove</button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Type</th>
+                <th scope="col">Progress</th>
+                <th scope="col">Download</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let item of item.notifications">
+                <th>{{item.type}}</th>
+                <th>{{item.progress}}</th>
+                <th>
+                    <button *ngif="item.progress != null && item.progress != 'FINISHED'" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">
+                        <span *ngIf="item.progress != 'FINISHED' && item.progress != 'FAILED'" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        {{item.progress == 'FINISHED' ? 'Download' : item.progress}}
+                    </button>
+                    <a *ngIf="item.progress == 'FINISHED'" type="button" class="btn btn-primary" [href]="item.url" download>Download</a>
+                </th>
+            </tr>
+        </tbody>
+    </table>
 </div>
