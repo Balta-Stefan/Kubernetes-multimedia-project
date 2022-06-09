@@ -43,10 +43,6 @@ export class FileService {
     return this.http.post<any>(`${baseURL}/upload-finished`, request);
   }
 
-  downloadFile(url: string): Observable<any>{
-    return this.http.get<any>(url);
-  }
-
   deleteFile(fileName: string): Observable<any>{
     return this.http.delete(`${baseURL}/file/` + fileName);
   }
