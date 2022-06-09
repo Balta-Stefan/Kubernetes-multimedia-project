@@ -94,7 +94,7 @@ public class KafkaWorker
     }
 
 
-    private void handleProcessedFile(BaseMessage msg, Optional<String> outputFilePathOpt)
+    private void handleProcessedFile(BaseMessage msg, String processedObjectName, Optional<String> outputFilePathOpt)
     {
         BaseMessage response = new BaseMessage(msg);
         response.setProgress(ProcessingProgress.FAILED);
@@ -112,12 +112,10 @@ public class KafkaWorker
             outputFilePath = outputFilePathOpt.get();
         }
 
-        String finishedObjectName = finishedDirectoryPrefix + msg.getFileName();
-
-        if(uploadFile(msg.getBucket(), finishedObjectName, outputFilePath) == true)
+        if(uploadFile(msg.getBucket(), processedObjectName, outputFilePath) == true)
         {
             response.setProgress(ProcessingProgress.FINISHED);
-            response.setObject(finishedObjectName);
+            response.setObject(processedObjectName);
 
             File file = new File(outputFilePath);
             if(file.delete() == false)
@@ -133,21 +131,27 @@ public class KafkaWorker
     @KafkaHandler
     public void extractAudio(ExtractAudioMessage msg)
     {
-        log.info("Worker has received an extract audio message with object" + msg.getObject());
+        log.info("Worker has received an extract audio message with object" + msg.getObject() + " and type: " + msg.getType());
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
-            handleProcessedFile(msg, videoService.extractAudio(downloadedFilePath));
+            String processedObjetName = finishedDirectoryPrefix + msg.getFileName() + "_AUDIO";
+            handleProcessedFile(msg, processedObjetName, videoService.extractAudio(downloadedFilePath));
         });
     }
 
     @KafkaHandler
     public void transcodeVideo(Transcode msg)
     {
-        log.info("Worker has received a transcode video message with file" + msg.getFileName());
+        log.info("Worker has received a transcode video message with file" + msg.getFileName() + " and type: " + msg.getType());
         log.info("Transcode resolution: " + msg.getTargetResolution());
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
-            handleProcessedFile(msg, videoService.transcode(downloadedFilePath, msg.getTargetResolution()));
+            String processedObjetName = finishedDirectoryPrefix + msg.getFileName()
+                    + "_TRANSCODED_"
+                    + msg.getTargetResolution().getWidth()
+                    + "x"
+                    + msg.getTargetResolution().getHeight();
+            handleProcessedFile(msg, processedObjetName, videoService.transcode(downloadedFilePath, msg.getTargetResolution()));
         });
     }
 }
