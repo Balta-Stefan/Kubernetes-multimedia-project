@@ -34,8 +34,10 @@ public class FilesServiceImpl implements FilesService
     private String finishedTopic;
 
     private final String userBucketPrefix = "user-";
-    private final String pendingDirectoryPrefix = "pending/";
-    private final String finishedDirectoryPrefix = "finished/";
+    @Value("${prefix.pending}")
+    private String pendingDirectoryPrefix;
+    @Value("${prefix.finished}")
+    private String finishedDirectoryPrefix;
 
     private final MinioClient minioClient;
 
@@ -137,11 +139,10 @@ public class FilesServiceImpl implements FilesService
             sentMessages++;
             kafkaTemplate.send(pendingTopic, tempMsg);
         }
-        if(request.getTargetResolution() != null)
+        if(request.getTargetResolution().isValid())
         {
             Transcode tempMsg = new Transcode(baseMessage);
             tempMsg.setTargetResolution(request.getTargetResolution());
-            log.info("Backend has received resolution: " + request.getTargetResolution().toString());
             kafkaTemplate.send(pendingTopic, tempMsg);
 
             sentMessages++;

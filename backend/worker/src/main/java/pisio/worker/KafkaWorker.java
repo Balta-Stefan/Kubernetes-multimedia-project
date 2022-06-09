@@ -73,13 +73,13 @@ public class KafkaWorker
         }
     }
 
-    private boolean uploadFile(String bucket, String fileName, String filePath)
+    private boolean uploadFile(String bucket, String object, String filePath)
     {
         try
         {
             minioClient.uploadObject(
                     UploadObjectArgs.builder()
-                            .bucket(bucket).object(finishedDirectoryPrefix + fileName)
+                            .bucket(bucket).object(object)
                             .filename(filePath)
                             .build());
         }
@@ -124,10 +124,6 @@ public class KafkaWorker
             {
                 log.warn("Couldn't delete processed file: " + outputFilePath);
             }
-        }
-        else
-        {
-            log.warn("File not uploaded successfully.");
         }
 
         kafkaTemplate.send(finishedTopicName, response);
