@@ -182,6 +182,8 @@ public class FilesServiceImpl implements FilesService
                 String objectName = obj.get().objectName();
                 String url = this.createPresignURL(bucket, objectName, objectExpiration, Method.GET);
                 String fileName;
+                ProcessingType type = null;
+
                 if(fromPendingDirectory == true)
                 {
                     fileName = objectName.replace(pendingDirectoryPrefix, "");
@@ -189,18 +191,19 @@ public class FilesServiceImpl implements FilesService
                 else
                 {
                     String fullPath = objectName.substring(finishedDirectoryPrefix.length()); // take everything behind finished/
+                    String processedFileName = fullPath.substring(fullPath.lastIndexOf("/")+1);
                     fileName = fullPath.substring(0, fullPath.indexOf("/"));
+                    if(processedFileName.contains("AUDIO")) // object metadata is always null for some reason so this method has to be used...
+                    {
+                        type = ProcessingType.EXTRACT_AUDIO;
+                    }
+                    else
+                    {
+                        type = ProcessingType.TRANSCODE;
+                    }
                 }
 
-                Map<String, String> metadata = obj.get().userMetadata();
-                System.out.println("Metadata is: " + metadata);
-                ProcessingType type = null;
-                if(metadata != null)
-                {
-                    type = ProcessingType.valueOf(metadata.get("type"));
-                }
-
-                ProcessingItem tempItem = items.get(objectName);
+                ProcessingItem tempItem = items.get(fileName);
                 UserNotification tempNotification = new UserNotification(fileName, progress, url, type);
 
                 if(tempItem != null)
@@ -211,7 +214,7 @@ public class FilesServiceImpl implements FilesService
                 {
                     tempItem = new ProcessingItem(fileName, new ArrayList<>());
                     tempItem.getNotifications().add(tempNotification);
-                    items.put(objectName, tempItem);
+                    items.put(fileName, tempItem);
                 }
             }
             catch(Exception e)
