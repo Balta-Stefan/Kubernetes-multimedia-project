@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import pisio.common.model.enums.ProcessingProgress;
+import pisio.common.model.enums.ProcessingType;
 
 @Data
 @AllArgsConstructor
@@ -18,6 +19,7 @@ public class BaseMessage
     protected String object;
     protected String fileName;
     protected ProcessingProgress progress;
+    protected ProcessingType type;
 
     public BaseMessage(BaseMessage msg)
     {
@@ -27,5 +29,6 @@ public class BaseMessage
         this.object = msg.object;
         this.fileName = msg.fileName;
         this.progress = msg.progress;
+        this.type = msg.type;
     }
 }

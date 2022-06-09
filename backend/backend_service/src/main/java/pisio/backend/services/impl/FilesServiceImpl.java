@@ -15,6 +15,7 @@ import pisio.backend.services.FilesService;
 import pisio.common.model.DTOs.ProcessingRequest;
 import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
+import pisio.common.model.enums.ProcessingType;
 import pisio.common.model.messages.BaseMessage;
 import pisio.common.model.messages.ExtractAudioMessage;
 import pisio.common.model.messages.Transcode;
@@ -131,18 +132,23 @@ public class FilesServiceImpl implements FilesService
                 BucketNameCreator.createBucket(user.getUserID()),
                 pendingDirectoryPrefix + request.getFile(),
                 request.getFile(),
-                ProcessingProgress.PENDING);
+                ProcessingProgress.PENDING,
+                null);
 
         if(request.isExtractAudio())
         {
+            baseMessage.setType(ProcessingType.EXTRACT_AUDIO);
             ExtractAudioMessage tempMsg = new ExtractAudioMessage(baseMessage);
             sentMessages++;
+            log.info("Backend sending extract audio message with type: " + tempMsg.getType());
             kafkaTemplate.send(pendingTopic, tempMsg);
         }
         if(request.getTargetResolution().isValid())
         {
+            baseMessage.setType(ProcessingType.TRANSCODE);
             Transcode tempMsg = new Transcode(baseMessage);
             tempMsg.setTargetResolution(request.getTargetResolution());
+            log.info("Backend sending transcode message with type: " + tempMsg.getType());
             kafkaTemplate.send(pendingTopic, tempMsg);
 
             sentMessages++;
@@ -176,7 +182,7 @@ public class FilesServiceImpl implements FilesService
                         Method.GET);
                 String fileName = obj.get().objectName().replace(prefix, "");
 
-                UserNotification notification = new UserNotification(fileName, progress, url);
+                UserNotification notification = new UserNotification(fileName, progress, url, null);
                 objects.add(notification);
             }
             catch(Exception e)

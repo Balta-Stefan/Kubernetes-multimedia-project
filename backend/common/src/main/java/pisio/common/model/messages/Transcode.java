@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import pisio.common.model.DTOs.Resolution;
 import pisio.common.model.enums.ProcessingProgress;
+import pisio.common.model.enums.ProcessingType;
 
 @Data
 @AllArgsConstructor
@@ -17,7 +18,7 @@ public class Transcode extends BaseMessage
 
     public Transcode(Integer userID, String username, String bucket, String object, String fileName, ProcessingProgress progress, Resolution targetResolution)
     {
-        super(userID, username, bucket, object, fileName, progress);
+        super(userID, username, bucket, object, fileName, progress, ProcessingType.TRANSCODE);
         this.targetResolution = targetResolution;
     }
 

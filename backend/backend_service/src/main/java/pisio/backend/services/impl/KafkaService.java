@@ -36,7 +36,7 @@ public class KafkaService
     public void listen(BaseMessage notification)
     {
         log.info("Listener received a notification with file: " + notification.getFileName());
-        UserNotification userNotification = new UserNotification(notification.getFileName(), notification.getProgress(), null);
+        UserNotification userNotification = new UserNotification(notification.getFileName(), notification.getProgress(), null, notification.getType());
 
         if(notification.getProgress().equals(ProcessingProgress.FAILED))
         {
