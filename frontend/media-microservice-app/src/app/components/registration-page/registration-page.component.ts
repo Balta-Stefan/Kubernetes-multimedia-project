@@ -21,8 +21,8 @@ export class RegistrationPageComponent implements OnInit {
 
   constructor(private fb: FormBuilder, private registrationService: RegistrationService) {
     this.formData = fb.group({
-      username: [null, [Validators.required, Validators.minLength(12)]],
-      password: [null, [Validators.required, Validators.minLength(15)]],
+      username: [null, [Validators.required, Validators.minLength(5)]],
+      password: [null, [Validators.required, Validators.minLength(4)]],
       password2: [null, Validators.required],
       email: [null, [Validators.required, Validators.email]]
     });
@@ -76,21 +76,6 @@ export class RegistrationPageComponent implements OnInit {
     }
 
     const pass1Value: string = pass1.value;
-    // check for minimum strength
-    const smallLettersRegex = /(.*[a-z]{1,}.*)/;
-    const capitalLettersRegex = /(.*[A-Z]{1,}.*)/;
-    const numbersRegex = /(.*[0-9]{1,}.*)/;
-
-    if(!pass1Value.match(smallLettersRegex)){
-      return false;
-    }
-    if(!pass1Value.match(capitalLettersRegex)){
-      return false;
-    }
-    if(!pass1Value.match(numbersRegex)){
-      return false;
-    }
-
 
     return true;
   }
