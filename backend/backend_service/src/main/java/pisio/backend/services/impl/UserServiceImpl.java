@@ -2,6 +2,8 @@ package pisio.backend.services.impl;
 
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
+import io.minio.SetBucketLifecycleArgs;
+import io.minio.messages.*;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +18,8 @@ import pisio.common.utils.BucketNameCreator;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional
@@ -57,10 +61,29 @@ public class UserServiceImpl implements UserService
 
         try
         {
+            String userBucket = BucketNameCreator.createBucket(userEntity.getUserID());
+
             minioClient.makeBucket(
                     MakeBucketArgs.builder()
-                            .bucket(BucketNameCreator.createBucket(userEntity.getUserID()))
+                            .bucket(userBucket)
                             .build());
+
+            List<LifecycleRule> rules = new ArrayList<>();
+            rules.add(
+                    new LifecycleRule(
+                            Status.ENABLED,
+                            null,
+                            new Expiration((ResponseDate) null, 1, null),
+                            new RuleFilter(""),
+                            null,
+                            null,
+                            null,
+                            null));
+
+            LifecycleConfiguration lifecycleConfig = new LifecycleConfiguration(rules);
+            minioClient.setBucketLifecycle(
+                    SetBucketLifecycleArgs.builder().bucket(userBucket).config(lifecycleConfig).build()
+            );
         }
         catch(Exception e)
         {
