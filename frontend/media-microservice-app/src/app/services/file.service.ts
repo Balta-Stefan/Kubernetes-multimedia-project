@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { baseURL, jsonHeaders } from '../app.module';
+import { ProcessingItem } from '../models/ProcessingItem';
 import { ProcessingRequest } from '../models/ProcessingRequest';
 
 @Injectable({
@@ -35,7 +36,7 @@ export class FileService {
     });
   }
 
-  listMyBucket(): Observable<string[]>{
+  listMyBucket(): Observable<ProcessingItem[]>{
     return this.http.get<any>(`${baseURL}/user/bucket`);
   }
 

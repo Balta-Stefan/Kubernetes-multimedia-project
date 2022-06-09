@@ -38,9 +38,10 @@ export class MainPageComponent implements OnInit, OnDestroy {
       error: (err: HttpErrorResponse) => {
         console.log("couldnt list my bucket");
       },
-      next: (items: string[]) => {
+      next: (items: ProcessingItem[]) => {
         console.log("my bucket:");
         console.log(items);
+        this.items = items;
       }
     });
 
