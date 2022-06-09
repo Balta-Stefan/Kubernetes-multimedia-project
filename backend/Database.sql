@@ -26,16 +26,6 @@ CREATE TABLE IF NOT EXISTS `media`.`USERS` (
   UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
 ENGINE = InnoDB;
 
-CREATE TABLE IF NOT EXISTS `media`.`FILES`(
-    `fileID` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    `name` VARCHAR(255) NOT NULL,
-    `uploadedBy` INT NOT NULL,
-    CONSTRAINT `FK_files_uploaded_by`
-        FOREIGN KEY(`uploadedBy`)
-        REFERENCES `media`.`USERS`(`userID`)
-        ON DELETE CASCADE)
-ENGINE = InnoDB;
-
 
 
 SET SQL_MODE=@OLD_SQL_MODE;

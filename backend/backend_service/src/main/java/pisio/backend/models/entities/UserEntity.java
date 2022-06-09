@@ -30,7 +30,4 @@ public class UserEntity
     @Basic
     @Column(name = "active", nullable = false)
     private Boolean active;
-
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<File> files;
 }
