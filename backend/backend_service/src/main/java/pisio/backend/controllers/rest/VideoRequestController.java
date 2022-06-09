@@ -6,8 +6,8 @@ import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.models.DTOs.UserDTO;
 import pisio.backend.services.FilesService;
 import pisio.backend.services.UserService;
+import pisio.common.model.DTOs.ProcessingItem;
 import pisio.common.model.DTOs.ProcessingRequest;
-import pisio.common.model.DTOs.UserNotification;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -44,7 +44,7 @@ public class VideoRequestController
     }
 
     @GetMapping("/user/bucket")
-    public List<UserNotification> listBucket(@AuthenticationPrincipal AuthenticatedUser user)
+    public List<ProcessingItem> listBucket(@AuthenticationPrincipal AuthenticatedUser user)
     {
         return filesService.listBucket(user);
     }

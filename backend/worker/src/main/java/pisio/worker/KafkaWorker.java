@@ -73,7 +73,7 @@ public class KafkaWorker
         }
     }
 
-    private boolean uploadFile(String bucket, String object, String filePath)
+    private boolean uploadFile(String bucket, String object, String filePath, Map<String, String> metadata)
     {
         try
         {
@@ -81,6 +81,7 @@ public class KafkaWorker
                     UploadObjectArgs.builder()
                             .bucket(bucket).object(object)
                             .filename(filePath)
+                            .userMetadata(metadata)
                             .build());
         }
         catch(Exception e)
@@ -112,7 +113,7 @@ public class KafkaWorker
             outputFilePath = outputFilePathOpt.get();
         }
 
-        if(uploadFile(msg.getBucket(), processedObjectName, outputFilePath) == true)
+        if(uploadFile(msg.getBucket(), processedObjectName, outputFilePath, Map.of("type", msg.getType().name())) == true)
         {
             response.setProgress(ProcessingProgress.FINISHED);
             response.setObject(processedObjectName);
@@ -134,8 +135,8 @@ public class KafkaWorker
         log.info("Worker has received an extract audio message with object" + msg.getObject() + " and type: " + msg.getType());
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
-            String processedObjetName = finishedDirectoryPrefix + msg.getFileName() + "_AUDIO";
-            handleProcessedFile(msg, processedObjetName, videoService.extractAudio(downloadedFilePath));
+            String processedObjectName = finishedDirectoryPrefix + msg.getFileName() + "/AUDIO.mp4";
+            handleProcessedFile(msg, processedObjectName, videoService.extractAudio(downloadedFilePath));
         });
     }
 
@@ -146,12 +147,12 @@ public class KafkaWorker
         log.info("Transcode resolution: " + msg.getTargetResolution());
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
-            String processedObjetName = finishedDirectoryPrefix + msg.getFileName()
-                    + "_TRANSCODED_"
+            String processedObjectName = finishedDirectoryPrefix + msg.getFileName() + "/"
+                    + "TRANSCODED_"
                     + msg.getTargetResolution().getWidth()
                     + "x"
                     + msg.getTargetResolution().getHeight();
-            handleProcessedFile(msg, processedObjetName, videoService.transcode(downloadedFilePath, msg.getTargetResolution()));
+            handleProcessedFile(msg, processedObjectName, videoService.transcode(downloadedFilePath, msg.getTargetResolution()));
         });
     }
 }

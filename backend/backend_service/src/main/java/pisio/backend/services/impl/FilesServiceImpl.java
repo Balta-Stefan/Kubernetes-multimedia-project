@@ -12,6 +12,7 @@ import pisio.backend.exceptions.BadRequestException;
 import pisio.backend.exceptions.InternalServerError;
 import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.services.FilesService;
+import pisio.common.model.DTOs.ProcessingItem;
 import pisio.common.model.DTOs.ProcessingRequest;
 import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
@@ -39,6 +40,9 @@ public class FilesServiceImpl implements FilesService
     private String pendingDirectoryPrefix;
     @Value("${prefix.finished}")
     private String finishedDirectoryPrefix;
+
+    @Value("${minio.presigned-url-expiration-hours}")
+    private Integer objectExpiration;
 
     private final MinioClient minioClient;
 
@@ -79,7 +83,6 @@ public class FilesServiceImpl implements FilesService
     public List<String> requestPresignUrls(List<String> files, AuthenticatedUser user)
     {
         // Get presigned URL string to upload 'my-objectname' in 'my-bucketname'
-        // with an expiration of 1 day.
 
         try
         {
@@ -105,7 +108,7 @@ public class FilesServiceImpl implements FilesService
                 String url = this.createPresignURL(
                         BucketNameCreator.createBucket(user.getUserID()),
                         pendingDirectoryPrefix + f,
-                        1,
+                        objectExpiration,
                         Method.PUT);
                 presignedURLs.add(url);
             }
@@ -161,45 +164,71 @@ public class FilesServiceImpl implements FilesService
 
     }
 
-    private List<UserNotification> listBucketUtil(String bucket, String prefix, ProcessingProgress progress)
+    private List<ProcessingItem> listBucketUtil(String bucket, String prefix, ProcessingProgress progress, boolean fromPendingDirectory)
     {
-        List<UserNotification> objects = new ArrayList<>();
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
                         .bucket(bucket)
                         .prefix(prefix)
+                        .recursive(true)
                         .build());
+
+        Map<String, ProcessingItem> items = new HashMap<>();
 
         results.forEach(obj ->
         {
             try
             {
-                System.out.println(obj.get().objectName());
-                String url = this.createPresignURL(
-                        bucket,
-                        obj.get().objectName(),
-                        1,
-                        Method.GET);
-                String fileName = obj.get().objectName().replace(prefix, "");
+                String objectName = obj.get().objectName();
+                String url = this.createPresignURL(bucket, objectName, objectExpiration, Method.GET);
+                String fileName;
+                if(fromPendingDirectory == true)
+                {
+                    fileName = objectName.replace(pendingDirectoryPrefix, "");
+                }
+                else
+                {
+                    String fullPath = objectName.substring(finishedDirectoryPrefix.length()); // take everything behind finished/
+                    fileName = fullPath.substring(0, fullPath.indexOf("/"));
+                }
 
-                UserNotification notification = new UserNotification(fileName, progress, url, null);
-                objects.add(notification);
+                Map<String, String> metadata = obj.get().userMetadata();
+                System.out.println("Metadata is: " + metadata);
+                ProcessingType type = null;
+                if(metadata != null)
+                {
+                    type = ProcessingType.valueOf(metadata.get("type"));
+                }
+
+                ProcessingItem tempItem = items.get(objectName);
+                UserNotification tempNotification = new UserNotification(fileName, progress, url, type);
+
+                if(tempItem != null)
+                {
+                    tempItem.getNotifications().add(tempNotification);
+                }
+                else
+                {
+                    tempItem = new ProcessingItem(fileName, new ArrayList<>());
+                    tempItem.getNotifications().add(tempNotification);
+                    items.put(objectName, tempItem);
+                }
             }
             catch(Exception e)
             {
                 e.printStackTrace();
-                throw new InternalServerError();
             }
         });
 
-        return objects;
+        return new ArrayList<>(items.values());
     }
 
     @Override
-    public List<UserNotification> listBucket(AuthenticatedUser user)
+    public List<ProcessingItem> listBucket(AuthenticatedUser user)
     {
-        List<UserNotification> files = this.listBucketUtil(BucketNameCreator.createBucket(user.getUserID()), pendingDirectoryPrefix, ProcessingProgress.UNKNOWN);
-        files.addAll(this.listBucketUtil(BucketNameCreator.createBucket(user.getUserID()), finishedDirectoryPrefix, ProcessingProgress.FINISHED));
+        String userBucket = BucketNameCreator.createBucket(user.getUserID());
+        List<ProcessingItem> files = this.listBucketUtil(userBucket, pendingDirectoryPrefix, ProcessingProgress.UNKNOWN, true);
+        files.addAll(this.listBucketUtil(userBucket, finishedDirectoryPrefix, ProcessingProgress.FINISHED, false));
 
         return files;
     }
