@@ -9,7 +9,6 @@ import pisio.backend.services.UserService;
 import pisio.common.model.DTOs.ProcessingItem;
 import pisio.common.model.DTOs.ProcessingRequest;
 import pisio.common.model.DTOs.ProcessingRequestReply;
-import pisio.common.utils.BucketNameCreator;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -55,5 +54,11 @@ public class VideoRequestController
     public void stopProcessing(@RequestParam String file, @RequestParam String processingID, @AuthenticationPrincipal AuthenticatedUser user)
     {
         this.filesService.stopProcessing(file, processingID, user);
+    }
+
+    @DeleteMapping("/pending/{file}")
+    public void deletePendingFile(@PathVariable String file, @AuthenticationPrincipal AuthenticatedUser user)
+    {
+        this.filesService.deletePendingObject(file, user);
     }
 }

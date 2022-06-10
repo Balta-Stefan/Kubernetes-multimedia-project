@@ -297,6 +297,15 @@ public class FilesServiceImpl implements FilesService
     }
 
     @Override
+    public boolean deletePendingObject(String file, AuthenticatedUser user)
+    {
+        String bucket = BucketNameCreator.createBucket(user.getUserID());
+        String object = pendingDirectoryPrefix + file;
+
+        return deleteObjectUtil(bucket, object);
+    }
+
+    @Override
     public void stopProcessing(String file, String processingID, AuthenticatedUser user)
     {
         this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), pendingDirectoryPrefix + file, false);
