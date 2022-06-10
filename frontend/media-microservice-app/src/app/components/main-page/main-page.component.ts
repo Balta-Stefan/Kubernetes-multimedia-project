@@ -9,6 +9,7 @@ import { Notification } from 'src/app/models/Notification';
 import { ProcessingRequest } from 'src/app/models/ProcessingRequest';
 import { ProcessingType } from 'src/app/models/ProcessingType';
 import { ProcessingItem } from 'src/app/models/ProcessingItem';
+import { ProcessingRequestReply } from 'src/app/models/ProcessingRequestReply';
 
 @Component({
   selector: 'app-main-page',
@@ -27,9 +28,12 @@ export class MainPageComponent implements OnInit, OnDestroy {
   targetResolutionWidth!: number;
   targetResolutionHeight!: number;
 
-  processingStarted: boolean = false;
-
   newNotificationSubject: Subject<Notification> = new Subject<Notification>();
+  processingRequestResponseSubject: Subject<ProcessingRequestReply[]> = new Subject<ProcessingRequestReply[]>();
+
+  existingFilesMap: Map<string, boolean> = new Map<string, boolean>();
+
+  stopUploadAndProcessing: boolean = false;
 
   @ViewChild('fileUploadInput') fileUploadInput!: ElementRef;
 
@@ -42,6 +46,9 @@ export class MainPageComponent implements OnInit, OnDestroy {
         console.log("my bucket:");
         console.log(items);
         this.items = items;
+
+        // add existing files to the map to ensure duplicates aren't added
+        this.items.forEach(i => this.existingFilesMap.set(i.file, true));
       }
     });
 
@@ -73,8 +80,13 @@ export class MainPageComponent implements OnInit, OnDestroy {
   }
 
   private uploadFileToObjectStorage(index: number): void{
+    if(this.stopUploadAndProcessing){
+      return;
+    }
     if(this.presignedLinks && this.presignedLinks.length > index){
-      this.items[index].notifications.forEach(n => n.progress = ProcessingProgress.UPLOADING);
+      const itemToUpload: ProcessingItem = this.items[index];
+
+      itemToUpload.notifications.forEach(n => n.progress = ProcessingProgress.UPLOADING);
 
       this.fileService.uploadFile(this.presignedLinks[index], this.filesToUpload[index])
       .then(() => {
@@ -91,13 +103,14 @@ export class MainPageComponent implements OnInit, OnDestroy {
           file: fileName
         };
 
-        this.fileService.notifyUploadFinished(req).subscribe(() => this.processingStarted = true);
-        this.items[index].notifications.forEach(n => n.progress = ProcessingProgress.PENDING);
+        this.fileService.notifyUploadFinished(req).subscribe((replies: ProcessingRequestReply[]) => this.processingRequestResponseSubject.next(replies));
+
+        itemToUpload.notifications.forEach(n => n.progress = ProcessingProgress.PENDING);
         this.uploadFileToObjectStorage(index + 1);
       }).catch((e) => {
         alert("Couldn't upload file to object storage");
         console.log(e);
-        this.items[index].notifications.forEach(n => n.progress = ProcessingProgress.FAILED);
+        itemToUpload.notifications.forEach(n => n.progress = ProcessingProgress.FAILED);
       });
     }
     else{
@@ -139,11 +152,18 @@ export class MainPageComponent implements OnInit, OnDestroy {
     const fileList: FileList = target.files as FileList;
     for(let i = 0; i < fileList.length; i++){
       const tempFile: File = fileList.item(i)!;
+      if(this.existingFilesMap.get(tempFile.name)){
+        alert("You have already processed file " + tempFile.name);
+        continue;
+      }
+
       this.filesToUpload.push(tempFile);
+      this.existingFilesMap.set(tempFile.name, true);
 
       const fileNotifications: Notification[] = [];
       if(this.extractAudio == true){
         const extractAudioItem: Notification = {
+          processingID: null,
           fileName: tempFile.name,
           progress: null,
           url: null,
@@ -154,6 +174,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
       }
       if(this.targetResolutionWidth && this.targetResolutionHeight){
         const transcodeItem: Notification = {
+          processingID: null,
           fileName: tempFile.name,
           progress: null,
           url: null,
@@ -173,10 +194,17 @@ export class MainPageComponent implements OnInit, OnDestroy {
   }
 
   stopProcessing(): void{
+    this.stopUploadAndProcessing = true;
+    this.filesToUpload = [];
+
     this.items.forEach(item => {
-      this.fileService.stopProcessing(item.file).subscribe();
+      item.notifications.forEach((notification: Notification) => {
+        if(notification.progress == ProcessingProgress.PENDING || notification.progress == ProcessingProgress.PROCESSING){
+          this.fileService.stopProcessing(item.file, notification.processingID!).subscribe(() => notification.progress = ProcessingProgress.CANCELED);
+        }
+      });
     });
 
-    this.items = [];
+    this.stopUploadAndProcessing = false;
   }
 }

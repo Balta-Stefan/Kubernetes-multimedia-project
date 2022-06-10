@@ -1,7 +1,7 @@
 <div class="container">
     <div class="row mb-3">
         <form>
-            <button *ngIf="processingStarted" type="button" class="btn btn-danger" (click)="stopProcessing()">Stop processing</button>
+            <button type="button" class="btn btn-danger" (click)="stopProcessing()">Stop processing</button>
 
             <div class="mb-3">
                 <label for="formFile" class="form-label">Select videos to upload</label>
@@ -29,7 +29,8 @@
         <app-item-card
             *ngFor="let item of items"
             [item]="item"
-            [newNotificationHandler]="newNotificationSubject.asObservable()">
+            [newNotificationHandler]="newNotificationSubject.asObservable()"
+            [processingRequestResponseHandler]="processingRequestResponseSubject.asObservable()">
 
         </app-item-card>
     </div>
