@@ -6,14 +6,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.services.FilesService;
 import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.messages.BaseMessage;
-import pisio.common.utils.BucketNameCreator;
 
-import java.util.Collections;
 
 @Service
 @Slf4j
@@ -71,8 +68,6 @@ public class KafkaService
         {
             userNotification.setProgress(ProcessingProgress.UNKNOWN);
         }
-        // remove the object from the pending directory
-        filesService.deleteObject(BucketNameCreator.createBucket(notification.getUserID()), pendingDirectoryPrefix + notification.getFileName(), false);
 
         simpMessagingTemplate.convertAndSend("/topic/notifications", userNotification);
     }
