@@ -45,6 +45,10 @@ export class FileService {
     return this.http.post<any>(`${baseURL}/upload-finished`, request);
   }
 
+  deleteFile(file: string): Observable<any>{
+    return this.http.delete<any>(`${baseURL}/pending/` + file);
+  }
+
   stopProcessing(file: string, processingID: string): Observable<any>{
     let params: HttpParams = new HttpParams();
     params = params.append("file", file);

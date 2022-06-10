@@ -53,17 +53,30 @@ export class ItemCardComponent implements OnInit, OnDestroy {
 
     this.notificationHandlerSubscription = this.newNotificationHandler.subscribe(notification => {
       if(notification.fileName == this.item.file){
+        let found: boolean = false;
         // two cases are possible: the user is already logged in and a notification exists in item.notifications.Another is when user logs out and logs in while processing is happening.
         const notifications: Notification[] = this.item.notifications;
         for(let i = 0; i < notifications.length; i++){
           if(notifications[i].type == notification.type){
             notifications[i].url = notification.url;
             notifications[i].progress = notification.progress;
-            return;
+            found = true;
+            break;
           }
         }
         // if the processing type doesn't exist, add it
-        notifications.push(notification);
+        if(found == false){
+          notifications.push(notification);
+        }
+
+        // if all the processings are successful, send a request to delete the uploaded file
+        for(let i = 0; i < notifications.length; i++){
+          if(notifications[i].progress != ProcessingProgress.FINISHED){
+            return;
+          }
+        }
+
+        this.fileService.deleteFile(this.item.file).subscribe();
       }
     });
   }
