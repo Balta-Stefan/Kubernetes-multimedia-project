@@ -4,5 +4,6 @@ export enum ProcessingProgress{
     PROCESSING="PROCESSING",
     FINISHED="FINISHED",
     FAILED="FAILED",
-    UNKNOWN="UNKNOWN"
+    UNKNOWN="UNKNOWN",
+    CANCELED="CANCELED"
 }
