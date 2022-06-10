@@ -130,6 +130,7 @@ public class FilesServiceImpl implements FilesService
         int sentMessages = 0;
 
         BaseMessage baseMessage = new BaseMessage(
+                user.getMessageQueueID(),
                 null,
                 user.getUserID(),
                 user.getUsername(),
