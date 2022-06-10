@@ -20,6 +20,7 @@ export class AppComponent {
         this.router.navigateByUrl('/login');
       },
       next: (receivedValue: LoginDetails) => {
+        sessionStorage.setItem('messageQueueID', receivedValue.messageQueueID);
         this.router.navigateByUrl('');
       }
     });

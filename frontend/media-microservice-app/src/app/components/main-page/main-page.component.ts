@@ -70,7 +70,9 @@ export class MainPageComponent implements OnInit, OnDestroy {
       console.log("inside connected block, val=");
       console.log(val);
       console.log("Inside connected block, connected=" + this.stompService.connected());
-      this.queueSubscription = this.stompService.watch("/topic/notifications").subscribe((msg: Message) => {
+      const messageQueueID: string = sessionStorage.getItem("messageQueueID")!;
+      
+      this.queueSubscription = this.stompService.watch("/queue/" + messageQueueID + "/notifications").subscribe((msg: Message) => {
         console.log("received a message: ");
         console.log(msg);
         console.log("the body is:");

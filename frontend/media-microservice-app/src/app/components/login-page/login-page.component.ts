@@ -33,7 +33,8 @@ export class LoginPageComponent implements OnInit {
         console.log(err);
         this.loginMessage = "Login unsuccessful";
       },
-      next: (receivedObject: LoginDetails) => {
+      next: (loginDetails: LoginDetails) => {
+        sessionStorage.setItem('messageQueueID', loginDetails.messageQueueID);
         this.router.navigateByUrl('');
       }
     });
