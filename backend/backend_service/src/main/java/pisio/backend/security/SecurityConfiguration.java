@@ -13,9 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.cors.CorsConfiguration;
 
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -49,11 +47,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
                 .antMatchers(HttpMethod.POST, "/api/v1/user").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/v1/session/login").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/v1/test-ws").permitAll()
-                .anyRequest().authenticated()
-                .and()
-                .logout(logout -> logout
-                        .logoutUrl("/api/v1/session/logout")
-                        .clearAuthentication(true));
+                .antMatchers(HttpMethod.GET, "/resources/**", "/").permitAll()
+                .anyRequest().authenticated();
     }
 
     @Override
