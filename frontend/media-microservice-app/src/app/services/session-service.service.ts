@@ -21,7 +21,7 @@ export class SessionService {
     return this.http.post<any>(`${baseURL}/session/login`, credentials);
   }
 
-  logout(): void{
-    this.http.post<any>(`${baseURL}/session/logout`, null).subscribe();
+  logout(): Observable<any>{
+    return this.http.post<any>(`${baseURL}/session/logout`, null);
   }
 }

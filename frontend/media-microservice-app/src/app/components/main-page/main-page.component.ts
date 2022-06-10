@@ -10,6 +10,8 @@ import { ProcessingRequest } from 'src/app/models/ProcessingRequest';
 import { ProcessingType } from 'src/app/models/ProcessingType';
 import { ProcessingItem } from 'src/app/models/ProcessingItem';
 import { ProcessingRequestReply } from 'src/app/models/ProcessingRequestReply';
+import { SessionService } from 'src/app/services/session-service.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-main-page',
@@ -37,7 +39,11 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
   @ViewChild('fileUploadInput') fileUploadInput!: ElementRef;
 
-  constructor(private fileService: FileService, private stompService: StompService) {
+  constructor(private fileService: FileService, 
+    private stompService: StompService,
+    private sessionService: SessionService, 
+    private router: Router) {
+
     this.fileService.listMyBucket().subscribe({
       error: (err: HttpErrorResponse) => {
         console.log("couldnt list my bucket");
@@ -206,5 +212,9 @@ export class MainPageComponent implements OnInit, OnDestroy {
     });
 
     this.stopUploadAndProcessing = false;
+  }
+
+  logout(): void{
+    this.sessionService.logout().subscribe(() => this.router.navigateByUrl('/login'));
   }
 }
