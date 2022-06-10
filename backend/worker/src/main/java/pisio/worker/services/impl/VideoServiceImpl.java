@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -31,16 +32,9 @@ public class VideoServiceImpl implements VideoService
                 log.warn("Video processor exit code is not 0");
 
                 File file = new File(outputFilePath);
-                if(file.exists())
+                if(file.exists() && file.delete() == false)
                 {
-                    if(file.delete() == false)
-                    {
-                        log.warn("Couldn't delete failed output file: " + outputFilePath);
-                    }
-                }
-                else
-                {
-                    return Optional.empty();
+                    log.warn("Couldn't delete failed output file: " + outputFilePath);
                 }
             }
             else
@@ -76,7 +70,7 @@ public class VideoServiceImpl implements VideoService
     @Override
     public Optional<String> transcode(String inputFilePath, Resolution targetResolution)
     {
-        String outputPath = changeFileExtension(inputFilePath, "mp4");
+        String outputPath = UUID.randomUUID() + ".mp4";//"OUT_" + changeFileExtension(inputFilePath, "mp4");
 
         List<String> command = List.of("ffmpeg",
                 "-i",
@@ -94,7 +88,7 @@ public class VideoServiceImpl implements VideoService
     public Optional<String> extractAudio(String inputFilePath)
     {
         // ffmpeg -i inputFilePath -map 0:a -c copy outputPath
-        String outputPath = changeFileExtension(inputFilePath, "mp4");
+        String outputPath = UUID.randomUUID() + ".mp4";//changeFileExtension(inputFilePath, "mp4");
 
         return process(List.of("ffmpeg", "-i", inputFilePath, "-map", "0:a", "-c", "copy", outputPath), outputPath);
     }
