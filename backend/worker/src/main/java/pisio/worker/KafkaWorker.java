@@ -5,22 +5,22 @@ import io.minio.MinioClient;
 import io.minio.UploadObjectArgs;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.messages.BaseMessage;
 import pisio.common.model.messages.ExtractAudioMessage;
 import pisio.common.model.messages.Transcode;
 import pisio.worker.services.VideoService;
+import pisio.worker.services.impl.CancelProcessingService;
 
 import java.io.File;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@KafkaListener(id = "${pending-topic-group-id}", topics = "${kafka.topic.pending}")
 @Slf4j
 @Service
 public class KafkaWorker
@@ -29,19 +29,24 @@ public class KafkaWorker
     @Value("${kafka.topic.finished}")
     private String finishedTopicName;
 
+    @Value("${kafka.topic.canceled}")
+    private String canceledTopic;
+
     @Value("${kafka.topic.processing}")
     private String processingTopicName;
 
     @Value("${prefix.finished}")
     private String finishedDirectoryPrefix;
     private final VideoService videoService;
+    private final CancelProcessingService cancelProcessingService;
 
     private final MinioClient minioClient;
 
-    public KafkaWorker(KafkaTemplate<String, BaseMessage> kafkaTemplate, VideoService videoService, MinioClient minioClient)
+    public KafkaWorker(KafkaTemplate<String, BaseMessage> kafkaTemplate, VideoService videoService, CancelProcessingService cancelProcessingService, MinioClient minioClient)
     {
         this.kafkaTemplate = kafkaTemplate;
         this.videoService = videoService;
+        this.cancelProcessingService = cancelProcessingService;
         this.minioClient = minioClient;
     }
 
@@ -126,9 +131,19 @@ public class KafkaWorker
         log.info("Worker has sent kafka message with progress: " + response.getProgress().name());
     }
 
-    @KafkaHandler
-    public void receiveMessage(BaseMessage msg)
+    @KafkaListener(topics="${kafka.topic.canceled}", groupId = "#{T(java.util.UUID).randomUUID().toString()}")
+    public void receiveCancelMessages(String processingID)
     {
+        this.cancelProcessingService.cancel(processingID);
+    }
+
+    @KafkaListener(topics="${kafka.topic.pending}", groupId = "${pending-topic-group-id}")
+    public void receivePendingMessage(@Payload(required = false) BaseMessage msg)
+    {
+        if(msg == null)
+        {
+            return; // received a tombstone record
+        }
         log.info("Worker has received a message with object" + msg.getObject() + " and type: " + msg.getType());
         BaseMessage tempMessage = new ExtractAudioMessage(msg);
         tempMessage.setProgress(ProcessingProgress.PROCESSING);
@@ -143,7 +158,7 @@ public class KafkaWorker
             {
                 case EXTRACT_AUDIO:
                     processedObjectName = finishedDirectoryPrefix + msg.getFileName() + "/AUDIO.mp4";
-                    outputPath = videoService.extractAudio(downloadedFilePath);
+                    outputPath = videoService.extractAudio(downloadedFilePath, msg.getProcessingID());
                     break;
                 case TRANSCODE:
                     Transcode tempMsg = (Transcode)msg;
@@ -152,7 +167,7 @@ public class KafkaWorker
                             + tempMsg.getTargetResolution().getWidth()
                             + "x"
                             + tempMsg.getTargetResolution().getHeight();
-                    outputPath = videoService.transcode(downloadedFilePath, tempMsg.getTargetResolution());
+                    outputPath = videoService.transcode(downloadedFilePath, tempMsg.getTargetResolution(), msg.getProcessingID());
                     break;
                 default:
                     log.warn("Received message with null type: " + msg.getFileName());
