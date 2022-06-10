@@ -6,7 +6,6 @@ import io.minio.messages.Item;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Service;
 import pisio.backend.exceptions.BadRequestException;
 import pisio.backend.exceptions.InternalServerError;
@@ -33,6 +32,9 @@ public class FilesServiceImpl implements FilesService
     @Value("${kafka.topic.pending}")
     private String pendingTopic;
 
+    @Value("${kafka.topic.canceled}")
+    private String canceledTopic;
+
     @Value("${prefix.pending}")
     private String pendingDirectoryPrefix;
     @Value("${prefix.finished}")
@@ -43,12 +45,14 @@ public class FilesServiceImpl implements FilesService
 
     private final MinioClient minioClient;
 
-    private final KafkaTemplate<String, BaseMessage> kafkaTemplate;
+    private final KafkaTemplate<String, BaseMessage> pendingTopicKafkaTemplate;
+    private final KafkaTemplate<String, String> canceledTopicKafkaTemplate;
 
-    public FilesServiceImpl(MinioClient minioClient, KafkaTemplate<String, BaseMessage> kafkaTemplate)
+    public FilesServiceImpl(MinioClient minioClient, KafkaTemplate<String, BaseMessage> pendingTopicKafkaTemplate, KafkaTemplate<String, String> canceledTopicKafkaTemplate)
     {
         this.minioClient = minioClient;
-        this.kafkaTemplate = kafkaTemplate;
+        this.pendingTopicKafkaTemplate = pendingTopicKafkaTemplate;
+        this.canceledTopicKafkaTemplate = canceledTopicKafkaTemplate;
     }
 
     @Override
@@ -144,7 +148,7 @@ public class FilesServiceImpl implements FilesService
             tempMsg.setProcessingID(UUID.randomUUID().toString());
             sentMessages++;
             log.info("Backend sending extract audio message with type: " + tempMsg.getType());
-            kafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
+            pendingTopicKafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
 
             replies.add(new ProcessingRequestReply(tempMsg.getProcessingID(), tempMsg.getFileName(), tempMsg.getType()));
         }
@@ -155,7 +159,7 @@ public class FilesServiceImpl implements FilesService
             tempMsg.setProcessingID(UUID.randomUUID().toString());
             tempMsg.setTargetResolution(request.getTargetResolution());
             log.info("Backend sending transcode message with type: " + tempMsg.getType());
-            kafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
+            pendingTopicKafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
 
             replies.add(new ProcessingRequestReply(tempMsg.getProcessingID(), tempMsg.getFileName(), tempMsg.getType()));
 
@@ -295,7 +299,8 @@ public class FilesServiceImpl implements FilesService
     public void stopProcessing(String file, String processingID, AuthenticatedUser user)
     {
         this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), pendingDirectoryPrefix + file, false);
-        kafkaTemplate.send(pendingTopic, processingID, null);
+        pendingTopicKafkaTemplate.send(pendingTopic, processingID, null);
+        canceledTopicKafkaTemplate.send(canceledTopic, processingID);
 
         this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), finishedDirectoryPrefix + file, true);
     }
