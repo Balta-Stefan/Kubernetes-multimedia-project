@@ -1,9 +1,10 @@
-import { HttpClient, HttpHeaders, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { baseURL, jsonHeaders } from '../app.module';
 import { ProcessingItem } from '../models/ProcessingItem';
 import { ProcessingRequest } from '../models/ProcessingRequest';
+import { ProcessingRequestReply } from '../models/ProcessingRequestReply';
 
 @Injectable({
   providedIn: 'root'
@@ -40,15 +41,17 @@ export class FileService {
     return this.http.get<any>(`${baseURL}/user/bucket`);
   }
 
-  notifyUploadFinished(request: ProcessingRequest): Observable<any>{
+  notifyUploadFinished(request: ProcessingRequest): Observable<ProcessingRequestReply[]>{
     return this.http.post<any>(`${baseURL}/upload-finished`, request);
   }
 
-  deleteFile(fileName: string): Observable<any>{
-    return this.http.delete(`${baseURL}/file/` + fileName);
-  }
+  stopProcessing(file: string, processingID: string): Observable<any>{
+    let params: HttpParams = new HttpParams();
+    params = params.append("file", file);
+    params = params.append("processingID", processingID);
 
-  stopProcessing(fileName: string): Observable<any>{
-    return this.http.delete(`${baseURL}/processing/` + fileName);
+    return this.http.delete(`${baseURL}/processing`, {
+      params: params
+    });
   }
 }
