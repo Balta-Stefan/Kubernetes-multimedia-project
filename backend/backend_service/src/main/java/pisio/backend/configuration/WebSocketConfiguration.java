@@ -22,7 +22,7 @@ public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer
     public void configureMessageBroker(MessageBrokerRegistry registry)
     {
         // destinations prefixed with /user target a message queue for the user that made that request
-        registry.enableSimpleBroker("/topic");
+        registry.enableSimpleBroker("/queue");
         registry.setApplicationDestinationPrefixes("/ws"); // messages whose URL starts with this prefix are routed to the @Controller
     }
 }
