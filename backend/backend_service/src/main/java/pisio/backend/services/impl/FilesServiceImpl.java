@@ -14,6 +14,7 @@ import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.services.FilesService;
 import pisio.common.model.DTOs.ProcessingItem;
 import pisio.common.model.DTOs.ProcessingRequest;
+import pisio.common.model.DTOs.ProcessingRequestReply;
 import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.enums.ProcessingType;
@@ -32,10 +33,6 @@ public class FilesServiceImpl implements FilesService
     @Value("${kafka.topic.pending}")
     private String pendingTopic;
 
-    @Value("${kafka.topic.finished}")
-    private String finishedTopic;
-
-    private final String userBucketPrefix = "user-";
     @Value("${prefix.pending}")
     private String pendingDirectoryPrefix;
     @Value("${prefix.finished}")
@@ -52,22 +49,6 @@ public class FilesServiceImpl implements FilesService
     {
         this.minioClient = minioClient;
         this.kafkaTemplate = kafkaTemplate;
-    }
-
-    @Override
-    public void deleteObject(String bucket, String object)
-    {
-        try
-        {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder().bucket(bucket).object(object).build());
-        }
-        catch (Exception e)
-        {
-            log.warn("Couldn't delete object: " + object + ", in bucket: " + bucket);
-            e.printStackTrace();
-        }
-
     }
 
     @Override
@@ -140,12 +121,13 @@ public class FilesServiceImpl implements FilesService
     }
 
     @Override
-    @SendToUser("/queue/notifications")
-    public void uploadFinishedNotification(ProcessingRequest request, AuthenticatedUser user)
+    public List<ProcessingRequestReply> uploadFinishedNotification(ProcessingRequest request, AuthenticatedUser user)
     {
         int sentMessages = 0;
 
-        BaseMessage baseMessage = new BaseMessage(user.getUserID(),
+        BaseMessage baseMessage = new BaseMessage(
+                null,
+                user.getUserID(),
                 user.getUsername(),
                 BucketNameCreator.createBucket(user.getUserID()),
                 pendingDirectoryPrefix + request.getFile(),
@@ -153,21 +135,29 @@ public class FilesServiceImpl implements FilesService
                 ProcessingProgress.PENDING,
                 null);
 
+        List<ProcessingRequestReply> replies = new ArrayList<>();
+
         if(request.isExtractAudio())
         {
-            baseMessage.setType(ProcessingType.EXTRACT_AUDIO);
             ExtractAudioMessage tempMsg = new ExtractAudioMessage(baseMessage);
+            tempMsg.setType(ProcessingType.EXTRACT_AUDIO);
+            tempMsg.setProcessingID(UUID.randomUUID().toString());
             sentMessages++;
             log.info("Backend sending extract audio message with type: " + tempMsg.getType());
-            kafkaTemplate.send(pendingTopic, tempMsg);
+            kafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
+
+            replies.add(new ProcessingRequestReply(tempMsg.getProcessingID(), tempMsg.getFileName(), tempMsg.getType()));
         }
         if(request.getTargetResolution().isValid())
         {
-            baseMessage.setType(ProcessingType.TRANSCODE);
             Transcode tempMsg = new Transcode(baseMessage);
+            tempMsg.setType(ProcessingType.TRANSCODE);
+            tempMsg.setProcessingID(UUID.randomUUID().toString());
             tempMsg.setTargetResolution(request.getTargetResolution());
             log.info("Backend sending transcode message with type: " + tempMsg.getType());
-            kafkaTemplate.send(pendingTopic, tempMsg);
+            kafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
+
+            replies.add(new ProcessingRequestReply(tempMsg.getProcessingID(), tempMsg.getFileName(), tempMsg.getType()));
 
             sentMessages++;
         }
@@ -177,6 +167,7 @@ public class FilesServiceImpl implements FilesService
             throw new BadRequestException();
         }
 
+        return replies;
     }
 
     private List<ProcessingItem> listBucketUtil(String bucket, String prefix, ProcessingProgress progress, boolean fromPendingDirectory)
@@ -219,7 +210,7 @@ public class FilesServiceImpl implements FilesService
                 }
 
                 ProcessingItem tempItem = items.get(fileName);
-                UserNotification tempNotification = new UserNotification(fileName, progress, url, type);
+                UserNotification tempNotification = new UserNotification(null, fileName, progress, url, type);
 
                 if(tempItem != null)
                 {
@@ -251,36 +242,61 @@ public class FilesServiceImpl implements FilesService
         return files;
     }
 
-
-    @Override
-    public boolean deleteObject(String object, AuthenticatedUser user)
+    private boolean deleteObjectUtil(String bucket, String object)
     {
         try
         {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
-                            .bucket(BucketNameCreator.createBucket(user.getUserID()))
+                            .bucket(bucket)
                             .object(object)
                             .build());
             return true;
         }
-        catch(Exception e)
+        catch (Exception e)
         {
+            log.warn("Couldn't delete object: " + object + ", in bucket: " + bucket);
             e.printStackTrace();
-            log.warn(e.getMessage());
             return false;
         }
     }
 
     @Override
-    public void stopProcessing(String file, AuthenticatedUser user)
+    public boolean deleteObject(String bucket, String object, boolean recursive)
     {
-        this.deleteObject(pendingDirectoryPrefix + file, user);
-        if(this.deleteObject(finishedDirectoryPrefix + file, user) == false)
+        if(recursive)
         {
-            // the object hasn't been processed, send a delete message
+            Iterable<Result<Item>> results = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(bucket)
+                            .recursive(true)
+                            .build());
 
+            for(Result<Item> res : results)
+            {
+                try
+                {
+                    this.deleteObjectUtil(bucket, res.get().objectName());
+                }
+                catch(Exception e)
+                {
+                    log.warn("Couldn't retrieve object recursively from bucket: " + bucket + ", and directory: " + object);
+                }
+            }
+            return true;
         }
+        else
+        {
+            return this.deleteObjectUtil(bucket, object);
+        }
+    }
 
+    @Override
+    public void stopProcessing(String file, String processingID, AuthenticatedUser user)
+    {
+        this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), pendingDirectoryPrefix + file, false);
+        kafkaTemplate.send(pendingTopic, processingID, null);
+
+        this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), finishedDirectoryPrefix + file, true);
     }
 }
