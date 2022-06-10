@@ -16,4 +16,5 @@ public interface FilesService
     List<ProcessingItem> listBucket(AuthenticatedUser user);
     boolean deleteObject(String object, AuthenticatedUser user);
     void stopProcessing(String file, AuthenticatedUser user);
+    void deleteObject(String bucket, String object);
 }

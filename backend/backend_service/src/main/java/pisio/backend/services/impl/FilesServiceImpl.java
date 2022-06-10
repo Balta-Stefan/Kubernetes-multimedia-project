@@ -1,6 +1,7 @@
 package pisio.backend.services.impl;
 
 import io.minio.*;
+import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Item;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,9 @@ import pisio.common.model.messages.ExtractAudioMessage;
 import pisio.common.model.messages.Transcode;
 import pisio.common.utils.BucketNameCreator;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -54,6 +58,21 @@ public class FilesServiceImpl implements FilesService
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    @Override
+    public void deleteObject(String bucket, String object)
+    {
+        try
+        {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder().bucket(bucket).object(object).build());
+        }
+        catch (Exception e)
+        {
+            log.warn("Couldn't delete object: " + object + ", in bucket: " + bucket);
+            e.printStackTrace();
+        }
+
+    }
 
     @Override
     public String createPresignURL(String bucket, String object, int expiryHours, Method method)
