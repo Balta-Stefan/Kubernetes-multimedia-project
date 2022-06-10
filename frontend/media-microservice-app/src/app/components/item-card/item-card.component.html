@@ -6,7 +6,7 @@
             <tr>
                 <th scope="col">Type</th>
                 <th scope="col">Progress</th>
-                <th scope="col">Download</th>
+                <th scope="col"></th>
             </tr>
         </thead>
         <tbody>
@@ -14,11 +14,11 @@
                 <th>{{item.type}}</th>
                 <th>{{item.progress}}</th>
                 <th>
-                    <button *ngif="item.progress != null && item.progress != 'FINISHED'" [ngClass]="(item.progress == 'FAILED') ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != 'FINISHED'">
-                        <span *ngIf="item.progress != 'FINISHED' && item.progress != 'FAILED'" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        {{item.progress == 'FINISHED' ? 'Download' : item.progress}}
+                    <button *ngif="item.progress != null && item.progress != progressEnum.FINISHED" [ngClass]="(item.progress == progressEnum.FAILED) ? 'btn btn-danger' : 'btn btn-primary'" type="button" [disabled]="item.progress != progressEnum.FINISHED">
+                        <span *ngIf="item.progress != progressEnum.FINISHED && item.progress != progressEnum.FAILED" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        {{item.progress == progressEnum.FINISHED ? 'Download' : item.progress}}
                     </button>
-                    <a *ngIf="item.progress == 'FINISHED'" type="button" class="btn btn-primary" [href]="item.url" download>Download</a>
+                    <a *ngIf="item.progress == progressEnum.FINISHED" type="button" class="btn btn-primary" [href]="item.url" download>Download</a>
                 </th>
             </tr>
         </tbody>
