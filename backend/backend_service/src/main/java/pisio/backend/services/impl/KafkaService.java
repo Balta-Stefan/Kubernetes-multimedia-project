@@ -41,7 +41,7 @@ public class KafkaService
                 null,
                 notification.getType());
 
-        simpMessagingTemplate.convertAndSend("/topic/notifications", userNotification);
+        simpMessagingTemplate.convertAndSend("/queue/" + notification.getMessageQueueID() + "/notifications", userNotification);
     }
 
     @KafkaListener(topics = "${kafka.topic.finished}", groupId = "${kafka.listener.group-id}")
@@ -69,6 +69,6 @@ public class KafkaService
             userNotification.setProgress(ProcessingProgress.UNKNOWN);
         }
 
-        simpMessagingTemplate.convertAndSend("/topic/notifications", userNotification);
+        simpMessagingTemplate.convertAndSend("/queue/" + notification.getMessageQueueID() + "/notifications", userNotification);
     }
 }
