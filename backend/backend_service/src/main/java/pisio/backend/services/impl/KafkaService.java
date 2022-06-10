@@ -11,6 +11,7 @@ import pisio.backend.services.FilesService;
 import pisio.common.model.DTOs.UserNotification;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.messages.BaseMessage;
+import pisio.common.utils.BucketNameCreator;
 
 import java.util.Collections;
 
@@ -32,8 +33,17 @@ public class KafkaService
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
-    @KafkaListener(topics = "${finished.topic-name}", groupId = "${kafka.listener.group-id}")
-    public void listen(BaseMessage notification)
+    @KafkaListener(topics="${kafka.topic.processing}", groupId = "${kafka.listener.group-id}")
+    public void listenProcessingTopic(BaseMessage notification)
+    {
+        log.info("Listener received a processing notification with file: " + notification.getFileName());
+        UserNotification userNotification = new UserNotification(notification.getFileName(), notification.getProgress(), null, notification.getType());
+
+        simpMessagingTemplate.convertAndSend("/topic/notifications", userNotification);
+    }
+
+    @KafkaListener(topics = "${kafka.topic.finished}", groupId = "${kafka.listener.group-id}")
+    public void listenFinishedTopic(BaseMessage notification)
     {
         log.info("Listener received a notification with file: " + notification.getFileName());
         UserNotification userNotification = new UserNotification(notification.getFileName(), notification.getProgress(), null, notification.getType());
@@ -46,19 +56,13 @@ public class KafkaService
         {
             String presignedURL = filesService.createPresignURL(notification.getBucket(), notification.getObject(), objectExpiration, Method.GET);
             userNotification.setUrl(presignedURL);
-
-            // remove the object from the pending directory
-            AuthenticatedUser user = new AuthenticatedUser(notification.getUserID(),
-                    notification.getUsername(),
-                    false,
-                    null,
-                    Collections.emptyList());
-            filesService.deleteObject(pendingDirectoryPrefix + notification.getFileName(), user);
         }
         else
         {
             userNotification.setProgress(ProcessingProgress.UNKNOWN);
         }
+        // remove the object from the pending directory
+        filesService.deleteObject(BucketNameCreator.createBucket(notification.getUserID()), pendingDirectoryPrefix + notification.getFileName());
 
         simpMessagingTemplate.convertAndSend("/topic/notifications", userNotification);
     }
