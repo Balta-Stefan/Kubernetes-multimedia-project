@@ -11,9 +11,9 @@ import pisio.common.model.enums.ProcessingType;
 public class ExtractAudioMessage extends BaseMessage
 {
     public ExtractAudioMessage(){}
-    public ExtractAudioMessage(String processingID, Integer userID, String username, String bucket, String object, String fileName, ProcessingProgress progress)
+    public ExtractAudioMessage(String messageQueueID, String processingID, Integer userID, String username, String bucket, String object, String fileName, ProcessingProgress progress)
     {
-        super(processingID, userID, username, bucket, object, fileName, progress, ProcessingType.EXTRACT_AUDIO);
+        super(messageQueueID, processingID, userID, username, bucket, object, fileName, progress, ProcessingType.EXTRACT_AUDIO);
     }
 
     public ExtractAudioMessage(BaseMessage msg)

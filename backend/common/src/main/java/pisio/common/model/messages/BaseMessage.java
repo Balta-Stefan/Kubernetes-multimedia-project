@@ -13,6 +13,7 @@ import pisio.common.model.enums.ProcessingType;
 @Builder
 public class BaseMessage
 {
+    protected String messageQueueID;
     protected String processingID;
     protected Integer userID;
     protected String username; // username is needed when sending a message to the user's queue
@@ -24,6 +25,7 @@ public class BaseMessage
 
     public BaseMessage(BaseMessage msg)
     {
+        this.messageQueueID = msg.messageQueueID;
         this.processingID = msg.processingID;
         this.userID = msg.userID;
         this.username = msg.username;

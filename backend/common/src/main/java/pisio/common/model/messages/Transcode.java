@@ -16,9 +16,9 @@ public class Transcode extends BaseMessage
 {
     private Resolution targetResolution;
 
-    public Transcode(String processingID, Integer userID, String username, String bucket, String object, String fileName, ProcessingProgress progress, Resolution targetResolution)
+    public Transcode(String messageQueueID, String processingID, Integer userID, String username, String bucket, String object, String fileName, ProcessingProgress progress, Resolution targetResolution)
     {
-        super(processingID, userID, username, bucket, object, fileName, progress, ProcessingType.TRANSCODE);
+        super(messageQueueID, processingID, userID, username, bucket, object, fileName, progress, ProcessingType.TRANSCODE);
         this.targetResolution = targetResolution;
     }
 

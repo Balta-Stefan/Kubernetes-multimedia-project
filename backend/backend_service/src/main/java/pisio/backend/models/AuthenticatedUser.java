@@ -15,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 public class AuthenticatedUser implements UserDetails
 {
+    private String messageQueueID;
     private int userID;
     private String username;
     private boolean active;
