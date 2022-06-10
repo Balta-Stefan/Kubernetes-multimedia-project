@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface VideoService
 {
-    Optional<String> transcode(String inputFilePath, Resolution targetResolution);
-    Optional<String> extractAudio(String inputFilePath);
+    Optional<String> transcode(String inputFilePath, Resolution targetResolution, String processingID);
+    Optional<String> extractAudio(String inputFilePath, String processingID);
 
 }

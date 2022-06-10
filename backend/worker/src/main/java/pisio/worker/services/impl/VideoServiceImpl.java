@@ -16,7 +16,14 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class VideoServiceImpl implements VideoService
 {
-    private Optional<String> process(List<String> command, String outputFilePath)
+    private final CancelProcessingService cancelProcessingService;
+
+    public VideoServiceImpl(CancelProcessingService cancelProcessingService)
+    {
+        this.cancelProcessingService = cancelProcessingService;
+    }
+
+    private Optional<String> process(List<String> command, String outputFilePath, String processingID)
     {
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
@@ -26,7 +33,10 @@ public class VideoServiceImpl implements VideoService
 
         try
         {
-            Process process = pb.start().onExit().get();
+            Process process = pb.start();
+            cancelProcessingService.registerProcess(processingID, process);
+            process.onExit().get();
+
             if(process.exitValue() != 0)
             {
                 log.warn("Video processor exit code is not 0");
@@ -48,6 +58,10 @@ public class VideoServiceImpl implements VideoService
             log.warn("An exception has occured while trying to process a video:" + e.getMessage());
             e.printStackTrace();
         }
+        finally
+        {
+            cancelProcessingService.deregisterProcess(processingID);
+        }
         return Optional.empty();
     }
 
@@ -68,7 +82,7 @@ public class VideoServiceImpl implements VideoService
         return outputPath;
     }
     @Override
-    public Optional<String> transcode(String inputFilePath, Resolution targetResolution)
+    public Optional<String> transcode(String inputFilePath, Resolution targetResolution, String processingID)
     {
         String outputPath = UUID.randomUUID() + ".mp4";//"OUT_" + changeFileExtension(inputFilePath, "mp4");
 
@@ -81,15 +95,15 @@ public class VideoServiceImpl implements VideoService
                 "copy",
                 outputPath);
 
-        return process(command, outputPath);
+        return process(command, outputPath, processingID);
     }
 
     @Override
-    public Optional<String> extractAudio(String inputFilePath)
+    public Optional<String> extractAudio(String inputFilePath, String processingID)
     {
         // ffmpeg -i inputFilePath -map 0:a -c copy outputPath
         String outputPath = UUID.randomUUID() + ".mp4";//changeFileExtension(inputFilePath, "mp4");
 
-        return process(List.of("ffmpeg", "-i", inputFilePath, "-map", "0:a", "-c", "copy", outputPath), outputPath);
+        return process(List.of("ffmpeg", "-i", inputFilePath, "-map", "0:a", "-c", "copy", outputPath), outputPath, processingID);
     }
 }
