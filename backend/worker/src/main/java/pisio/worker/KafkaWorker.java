@@ -126,7 +126,6 @@ public class KafkaWorker
         {
             log.warn("Couldn't delete processed file: " + outputFilePath);
         }
-
         kafkaTemplate.send(finishedTopicName, response);
         log.info("Worker has sent kafka message with progress: " + response.getProgress().name());
     }
@@ -145,7 +144,7 @@ public class KafkaWorker
             return; // received a tombstone record
         }
         log.info("Worker has received a message with object" + msg.getObject() + " and type: " + msg.getType());
-        BaseMessage tempMessage = new ExtractAudioMessage(msg);
+        BaseMessage tempMessage = new BaseMessage(msg);
         tempMessage.setProgress(ProcessingProgress.PROCESSING);
         kafkaTemplate.send(processingTopicName, tempMessage);
 
