@@ -99,19 +99,6 @@ export class MainPageComponent implements OnInit, OnDestroy {
         console.log(e);
         this.items[index].notifications.forEach(n => n.progress = ProcessingProgress.FAILED);
       });
-
-      /*this.fileService.uploadFile(this.presignedLinks[index], this.newFiles?.item(index)!).subscribe({
-        error: (err: HttpErrorResponse) => {
-          alert("Couldn't upload file " + this.newFiles?.item(index)?.name);
-          this.items[index].progress = ProcessingProgress.FAILED;
-        },
-        complete: () => {
-          alert("Finished uploading the file: " + this.newFiles?.item(index)?.name);
-          this.fileService.notifyUploadFinished(this.newFiles?.item(index)?.name!).subscribe();
-          this.items[index].progress = ProcessingProgress.PENDING;
-          this.uploadFileToObjectStorage(index + 1);
-        }
-      });*/
     }
     else{
       this.filesToUpload = [];
@@ -130,12 +117,8 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
     console.log("main page upload file");
     const files: string[] = [];
-    for(let i = 0; i < this.filesToUpload.length; i++){
-      files.push(this.filesToUpload[i].name!);
-    }
+    this.filesToUpload.forEach(f => files.push(f.name));
     
-
-
     this.fileService.requestPresignURLs(files).subscribe({
       next: (links: string[]) => {
         console.log("received presigned URLs: ");
@@ -149,17 +132,6 @@ export class MainPageComponent implements OnInit, OnDestroy {
         alert("Couldn't get presigned URLs");
       }
     });
-    /*this.fileService.uploadFile(this.newFiles!).subscribe({
-      next: (newFile: ProcessingItem) => {
-        this.items.push(newFile);
-        this.newFiles = null;
-        this.fileUploadInput.nativeElement.value = '';
-        alert("File successfully uploaded.");
-      },
-      error: (err: HttpErrorResponse) => {
-        alert("An error has occurred: " + err.status);
-      }
-    });*/
   }
 
   newFilesChosen(event: Event): void{
@@ -196,7 +168,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
         notifications: fileNotifications
       };
 
-      this.items.push(processingItem);
+      this.items.unshift(processingItem);
     }
   }
 
