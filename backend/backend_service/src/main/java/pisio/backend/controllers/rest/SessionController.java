@@ -2,8 +2,11 @@ package pisio.backend.controllers.rest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
+import pisio.backend.models.AuthenticatedUser;
+import pisio.backend.models.LoginReply;
 import pisio.backend.models.requests.LoginDetails;
 import pisio.backend.services.UserSessionService;
 
@@ -23,9 +26,9 @@ public class SessionController
     }
 
     @PostMapping("/login")
-    public void login(@RequestBody @Valid LoginDetails loginDetails)
+    public LoginReply login(@RequestBody @Valid LoginDetails loginDetails)
     {
-        userSessionService.login(loginDetails);
+        return userSessionService.login(loginDetails);
     }
 
     @PostMapping("/logout")
@@ -39,8 +42,8 @@ public class SessionController
 
     @GetMapping("/status")
     @ResponseStatus(HttpStatus.OK)
-    public void checkStatus(Authentication authentication)
+    public LoginReply checkStatus(@AuthenticationPrincipal AuthenticatedUser user)
     {
-
+        return new LoginReply(user.getMessageQueueID());
     }
 }
