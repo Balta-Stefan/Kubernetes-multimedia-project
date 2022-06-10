@@ -11,9 +11,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import pisio.backend.exceptions.UnauthorizedException;
 import pisio.backend.models.AuthenticatedUser;
+import pisio.backend.models.LoginReply;
 import pisio.backend.models.requests.LoginDetails;
 import pisio.backend.repositories.UsersRepository;
 import pisio.backend.services.UserSessionService;
+
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -33,7 +36,7 @@ public class UserSessionServiceImpl implements UserSessionService
     }
 
     @Override
-    public void login(LoginDetails loginDetails)
+    public LoginReply login(LoginDetails loginDetails)
     {
         try
         {
@@ -43,7 +46,10 @@ public class UserSessionServiceImpl implements UserSessionService
                                     loginDetails.getPassword())
                     );
             AuthenticatedUser userDetails = (AuthenticatedUser)authentication.getPrincipal();
+            userDetails.setMessageQueueID(UUID.randomUUID().toString());
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            return new LoginReply(userDetails.getMessageQueueID());
         }
         catch(BadCredentialsException badCreds)
         {
