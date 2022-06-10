@@ -29,10 +29,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class FilesServiceImpl implements FilesService
 {
-    @Value("${pending.topic-name}")
+    @Value("${kafka.topic.pending}")
     private String pendingTopic;
 
-    @Value("${finished.topic-name}")
+    @Value("${kafka.topic.finished}")
     private String finishedTopic;
 
     private final String userBucketPrefix = "user-";

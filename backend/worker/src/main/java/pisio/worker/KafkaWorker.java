@@ -26,7 +26,7 @@ import java.util.UUID;
 public class KafkaWorker
 {
     private final KafkaTemplate<String, BaseMessage> kafkaTemplate;
-    @Value("${finished.topic-name}")
+    @Value("${kafka.topic.finished}")
     private String finishedTopicName;
 
     @Value("${prefix.finished}")
@@ -77,9 +77,11 @@ public class KafkaWorker
     {
         try
         {
+            log.info("Uploading object: " + object + ", with metadata: " + metadata);
             minioClient.uploadObject(
                     UploadObjectArgs.builder()
-                            .bucket(bucket).object(object)
+                            .bucket(bucket)
+                            .object(object)
                             .filename(filePath)
                             .userMetadata(metadata)
                             .build());

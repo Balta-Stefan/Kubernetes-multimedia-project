@@ -35,7 +35,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
     protected void configure(HttpSecurity http) throws Exception
     {
         http
-                .cors().configurationSource(request ->
+                /*.cors().configurationSource(request ->
                 {
                     CorsConfiguration cors = new CorsConfiguration();
                     cors.setAllowedOrigins(List.of("http://localhost:4200"));
@@ -43,11 +43,12 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter
                     cors.setAllowedHeaders(List.of("*"));
                     return cors;
                 })
-                .and().csrf().disable()
+                .and()*/.csrf().disable()
                 .antMatcher("/api/v1/**")
                 .authorizeRequests()
                 .antMatchers(HttpMethod.POST, "/api/v1/user").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/v1/session/login").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/v1/test-ws").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .logout(logout -> logout
