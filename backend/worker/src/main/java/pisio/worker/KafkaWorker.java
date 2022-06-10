@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@KafkaListener(id = "${pending-topic-group-id}", topics = "${pending.topic-name}")
+@KafkaListener(id = "${pending-topic-group-id}", topics = "${kafka.topic.pending}")
 @Slf4j
 @Service
 public class KafkaWorker
@@ -28,6 +28,9 @@ public class KafkaWorker
     private final KafkaTemplate<String, BaseMessage> kafkaTemplate;
     @Value("${kafka.topic.finished}")
     private String finishedTopicName;
+
+    @Value("${kafka.topic.processing}")
+    private String processingTopicName;
 
     @Value("${prefix.finished}")
     private String finishedDirectoryPrefix;
@@ -44,14 +47,7 @@ public class KafkaWorker
 
     private Optional<String> downloadFile(String bucket, String object)
     {
-        int dotIndex = object.lastIndexOf(".");
-        String fileExtension = "";
-
-        if(dotIndex != -1)
-        {
-            fileExtension = object.substring(dotIndex);
-        }
-        String fileName = UUID.randomUUID().toString().replace("-", "") + fileExtension;
+        String fileName = UUID.randomUUID().toString().replace("-", "");
         log.info("Generated file name is: " + fileName);
 
         try
@@ -69,7 +65,8 @@ public class KafkaWorker
         {
             log.warn("An exception has occured in KafkaWorker.downloadFile");
             e.printStackTrace();
-            return Optional.of(fileName);
+            new File(fileName).delete(); // delete the file if it was created
+            return Optional.empty();
         }
     }
 
@@ -119,12 +116,10 @@ public class KafkaWorker
         {
             response.setProgress(ProcessingProgress.FINISHED);
             response.setObject(processedObjectName);
-
-            File file = new File(outputFilePath);
-            if(file.delete() == false)
-            {
-                log.warn("Couldn't delete processed file: " + outputFilePath);
-            }
+        }
+        if(new File(outputFilePath).delete() == false)
+        {
+            log.warn("Couldn't delete processed file: " + outputFilePath);
         }
 
         kafkaTemplate.send(finishedTopicName, response);
@@ -132,9 +127,54 @@ public class KafkaWorker
     }
 
     @KafkaHandler
+    public void receiveMessage(BaseMessage msg)
+    {
+        log.info("Worker has received a message with object" + msg.getObject() + " and type: " + msg.getType());
+        BaseMessage tempMessage = new ExtractAudioMessage(msg);
+        tempMessage.setProgress(ProcessingProgress.PROCESSING);
+        kafkaTemplate.send(processingTopicName, tempMessage);
+
+        downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
+        {
+            Optional<String> outputPath;
+            String processedObjectName;
+
+            switch(msg.getType())
+            {
+                case EXTRACT_AUDIO:
+                    processedObjectName = finishedDirectoryPrefix + msg.getFileName() + "/AUDIO.mp4";
+                    outputPath = videoService.extractAudio(downloadedFilePath);
+                    break;
+                case TRANSCODE:
+                    Transcode tempMsg = (Transcode)msg;
+                    processedObjectName = finishedDirectoryPrefix + msg.getFileName() + "/"
+                            + "TRANSCODED_"
+                            + tempMsg.getTargetResolution().getWidth()
+                            + "x"
+                            + tempMsg.getTargetResolution().getHeight();
+                    outputPath = videoService.transcode(downloadedFilePath, tempMsg.getTargetResolution());
+                    break;
+                default:
+                    log.warn("Received message with null type: " + msg.getFileName());
+                    return;
+            }
+
+            handleProcessedFile(msg, processedObjectName, outputPath);
+            if(new File(downloadedFilePath).delete() == false)
+            {
+                log.warn("Couldn't delete downloaded file " + downloadedFilePath);
+            }
+        });
+    }
+
+    /*@KafkaHandler
     public void extractAudio(ExtractAudioMessage msg)
     {
         log.info("Worker has received an extract audio message with object" + msg.getObject() + " and type: " + msg.getType());
+        BaseMessage tempMessage = new ExtractAudioMessage(msg);
+        tempMessage.setProgress(ProcessingProgress.PROCESSING);
+        kafkaTemplate.send(processingTopicName, tempMessage);
+
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
             String processedObjectName = finishedDirectoryPrefix + msg.getFileName() + "/AUDIO.mp4";
@@ -147,6 +187,10 @@ public class KafkaWorker
     {
         log.info("Worker has received a transcode video message with file" + msg.getFileName() + " and type: " + msg.getType());
         log.info("Transcode resolution: " + msg.getTargetResolution());
+        BaseMessage tempMessage = new ExtractAudioMessage(msg);
+        tempMessage.setProgress(ProcessingProgress.PROCESSING);
+        kafkaTemplate.send(processingTopicName, tempMessage);
+
         downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
         {
             String processedObjectName = finishedDirectoryPrefix + msg.getFileName() + "/"
@@ -156,5 +200,5 @@ public class KafkaWorker
                     + msg.getTargetResolution().getHeight();
             handleProcessedFile(msg, processedObjectName, videoService.transcode(downloadedFilePath, msg.getTargetResolution()));
         });
-    }
+    }*/
 }
