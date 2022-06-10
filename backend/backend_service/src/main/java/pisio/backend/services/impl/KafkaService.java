@@ -37,7 +37,12 @@ public class KafkaService
     public void listenProcessingTopic(BaseMessage notification)
     {
         log.info("Listener received a processing notification with file: " + notification.getFileName());
-        UserNotification userNotification = new UserNotification(notification.getFileName(), notification.getProgress(), null, notification.getType());
+        UserNotification userNotification = new UserNotification(
+                notification.getProcessingID(),
+                notification.getFileName(),
+                notification.getProgress(),
+                null,
+                notification.getType());
 
         simpMessagingTemplate.convertAndSend("/topic/notifications", userNotification);
     }
@@ -46,7 +51,12 @@ public class KafkaService
     public void listenFinishedTopic(BaseMessage notification)
     {
         log.info("Listener received a notification with file: " + notification.getFileName());
-        UserNotification userNotification = new UserNotification(notification.getFileName(), notification.getProgress(), null, notification.getType());
+        UserNotification userNotification = new UserNotification(
+                notification.getProcessingID(),
+                notification.getFileName(),
+                notification.getProgress(),
+                null,
+                notification.getType());
 
         if(notification.getProgress().equals(ProcessingProgress.FAILED))
         {
@@ -62,7 +72,7 @@ public class KafkaService
             userNotification.setProgress(ProcessingProgress.UNKNOWN);
         }
         // remove the object from the pending directory
-        filesService.deleteObject(BucketNameCreator.createBucket(notification.getUserID()), pendingDirectoryPrefix + notification.getFileName());
+        filesService.deleteObject(BucketNameCreator.createBucket(notification.getUserID()), pendingDirectoryPrefix + notification.getFileName(), false);
 
         simpMessagingTemplate.convertAndSend("/topic/notifications", userNotification);
     }
