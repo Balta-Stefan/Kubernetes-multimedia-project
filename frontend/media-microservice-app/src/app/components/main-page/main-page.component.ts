@@ -45,11 +45,9 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
     this.fileService.listMyBucket().subscribe({
       error: (err: HttpErrorResponse) => {
-        console.log("couldnt list my bucket");
+        
       },
       next: (items: ProcessingItem[]) => {
-        console.log("my bucket:");
-        console.log(items);
         this.items = items;
 
         // add existing files to the map to ensure duplicates aren't added
@@ -66,19 +64,10 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.stompService.connected$.subscribe(val => {
-      console.log("inside connected block, val=");
-      console.log(val);
-      console.log("Inside connected block, connected=" + this.stompService.connected());
       const messageQueueID: string = sessionStorage.getItem("messageQueueID")!;
       
       this.queueSubscription = this.stompService.watch("/queue/" + messageQueueID + "/notifications").subscribe((msg: Message) => {
-        console.log("received a message: ");
-        console.log(msg);
-        console.log("the body is:");
-
         const notification: Notification = JSON.parse(msg.body);
-        console.log(notification);
-        console.log("==================");
 
         this.newNotificationSubject.next(notification);
       });
@@ -97,8 +86,6 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
       this.fileService.uploadFile(this.presignedLinks[index], this.filesToUpload[index])
       .then(() => {
-        alert("Finished uploading the file: " + this.filesToUpload[index].name);
-
         const fileName: string = this.filesToUpload[index].name;
 
         const req: ProcessingRequest = {
@@ -116,7 +103,6 @@ export class MainPageComponent implements OnInit, OnDestroy {
         this.uploadFileToObjectStorage(index + 1);
       }).catch((e) => {
         alert("Couldn't upload file to object storage");
-        console.log(e);
         itemToUpload.notifications.forEach(n => n.progress = ProcessingProgress.FAILED);
       });
     }
@@ -135,14 +121,11 @@ export class MainPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log("main page upload file");
     const files: string[] = [];
     this.filesToUpload.forEach(f => files.push(f.name));
     
     this.fileService.requestPresignURLs(files).subscribe({
       next: (links: string[]) => {
-        console.log("received presigned URLs: ");
-        console.log(links);
   
         this.presignedLinks = links;
   

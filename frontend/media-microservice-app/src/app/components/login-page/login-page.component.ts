@@ -30,7 +30,6 @@ export class LoginPageComponent implements OnInit {
 
     this.sessionService.login(loginRequest).subscribe({
       error: (err: any) => {
-        console.log(err);
         this.loginMessage = "Login unsuccessful";
       },
       next: (loginDetails: LoginDetails) => {

@@ -122,8 +122,6 @@ export class RegistrationPageComponent implements OnInit {
         if(response?.error?.username){
           this.usernameError = response.error.username;
         }
-
-        console.log(response);
       },
       complete: () => {
         this.registrationStatus = "Registration successful";

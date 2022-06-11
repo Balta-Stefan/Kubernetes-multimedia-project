@@ -18,19 +18,6 @@ export class FileService {
   }
 
   uploadFile(url: string, file: File): Promise<any>{
-    console.log("Uploaded file type is: " + file.type);
-    console.log("Upload URL is: ");
-    console.log(url);
-    /*const formData: FormData = new FormData();
-    const headers: HttpHeaders = new HttpHeaders("Content-Type: " + file.type);
-
-    formData.append('file', file, file.name);
-    console.log("uploading file");
-
-    return this.http.put<any>(url, formData, {
-      headers: headers
-    });*/
-
     return fetch(url, {
       method: 'PUT',
       body: file
