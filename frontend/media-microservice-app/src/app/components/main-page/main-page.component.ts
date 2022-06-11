@@ -37,7 +37,6 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
   stopUploadAndProcessing: boolean = false;
 
-  @ViewChild('fileUploadInput') fileUploadInput!: ElementRef;
 
   constructor(private fileService: FileService, 
     private stompService: StompService,
@@ -199,6 +198,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
       this.items.unshift(processingItem);
     }
+    target.files = null; // clear the files input field
   }
 
   stopProcessing(): void{
