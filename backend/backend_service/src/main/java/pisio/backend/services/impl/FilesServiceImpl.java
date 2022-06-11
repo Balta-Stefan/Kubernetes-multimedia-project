@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import pisio.backend.exceptions.BadRequestException;
 import pisio.backend.exceptions.InternalServerError;
 import pisio.backend.models.AuthenticatedUser;
+import pisio.backend.models.DTOs.PresignedUploadLink;
 import pisio.backend.services.FilesService;
 import pisio.common.model.DTOs.ProcessingItem;
 import pisio.common.model.DTOs.ProcessingRequest;
@@ -80,7 +81,7 @@ public class FilesServiceImpl implements FilesService
     }
 
     @Override
-    public List<String> requestPresignUrls(List<String> files, AuthenticatedUser user)
+    public List<PresignedUploadLink> requestPresignUrls(List<String> files, AuthenticatedUser user)
     {
         // Get presigned URL string to upload 'my-objectname' in 'my-bucketname'
 
@@ -102,7 +103,7 @@ public class FilesServiceImpl implements FilesService
 
         try
         {
-            List<String> presignedURLs = new ArrayList<>();
+            List<PresignedUploadLink> presignedURLs = new ArrayList<>();
             for(String f : files)
             {
                 String url = this.createPresignURL(
@@ -110,7 +111,7 @@ public class FilesServiceImpl implements FilesService
                         pendingDirectoryPrefix + f,
                         objectExpiration,
                         Method.PUT);
-                presignedURLs.add(url);
+                presignedURLs.add(new PresignedUploadLink(f, url));
             }
 
             return presignedURLs;

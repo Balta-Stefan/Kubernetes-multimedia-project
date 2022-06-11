@@ -3,6 +3,7 @@ package pisio.backend.controllers.rest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import pisio.backend.models.AuthenticatedUser;
+import pisio.backend.models.DTOs.PresignedUploadLink;
 import pisio.backend.models.DTOs.UserDTO;
 import pisio.backend.services.FilesService;
 import pisio.backend.services.UserService;
@@ -27,7 +28,7 @@ public class VideoRequestController
     }
 
     @PostMapping("/presign-urls")
-    public List<String> uploadFiles(@RequestBody List<String> files, @AuthenticationPrincipal AuthenticatedUser user)
+    public List<PresignedUploadLink> uploadFiles(@RequestBody List<String> files, @AuthenticationPrincipal AuthenticatedUser user)
     {
         return filesService.requestPresignUrls(files, user);
     }
