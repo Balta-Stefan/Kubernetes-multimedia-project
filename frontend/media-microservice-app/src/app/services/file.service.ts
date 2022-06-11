@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from '@angular/commo
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { baseURL, jsonHeaders } from '../app.module';
+import { PresignedUploadLink } from '../models/PresignedUploadLink';
 import { ProcessingItem } from '../models/ProcessingItem';
 import { ProcessingRequest } from '../models/ProcessingRequest';
 import { ProcessingRequestReply } from '../models/ProcessingRequestReply';
@@ -13,7 +14,7 @@ export class FileService {
 
   constructor(private http: HttpClient) { }
 
-  requestPresignURLs(files: string[]): Observable<string[]>{
+  requestPresignURLs(files: string[]): Observable<PresignedUploadLink[]>{
     return this.http.post<any>(`${baseURL}/presign-urls`, files);
   }
 

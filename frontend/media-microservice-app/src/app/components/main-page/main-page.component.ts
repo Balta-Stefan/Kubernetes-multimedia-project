@@ -12,6 +12,7 @@ import { ProcessingItem } from 'src/app/models/ProcessingItem';
 import { ProcessingRequestReply } from 'src/app/models/ProcessingRequestReply';
 import { SessionService } from 'src/app/services/session-service.service';
 import { Router } from '@angular/router';
+import { PresignedUploadLink } from 'src/app/models/PresignedUploadLink';
 
 @Component({
   selector: 'app-main-page',
@@ -22,7 +23,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
   items: ProcessingItem[] = [];
 
   filesToUpload: File[] = [];
-  presignedLinks: string[] | null = null;
+  presignedLinks: PresignedUploadLink[] | null = null;
 
   queueSubscription!: Subscription;
 
@@ -80,13 +81,15 @@ export class MainPageComponent implements OnInit, OnDestroy {
       return;
     }
     if(this.presignedLinks && this.presignedLinks.length > index){
-      const itemToUpload: ProcessingItem = this.items[index];
+      const presignedLink: PresignedUploadLink = this.presignedLinks[index];
+      const itemToUpload: ProcessingItem = this.items.find(i => i.file == presignedLink.file)!;
+      const fileToUpload: File = this.filesToUpload.find(f => f.name == presignedLink.file)!;
 
       itemToUpload.notifications.forEach(n => n.progress = ProcessingProgress.UPLOADING);
 
-      this.fileService.uploadFile(this.presignedLinks[index], this.filesToUpload[index])
+      this.fileService.uploadFile(presignedLink.url, fileToUpload)
       .then(() => {
-        const fileName: string = this.filesToUpload[index].name;
+        const fileName: string = fileToUpload.name;
 
         const req: ProcessingRequest = {
           extractAudio: this.extractAudio,
@@ -108,6 +111,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
     }
     else{
       this.filesToUpload = [];
+      this.presignedLinks = [];
     }
   }
 
@@ -125,7 +129,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
     this.filesToUpload.forEach(f => files.push(f.name));
     
     this.fileService.requestPresignURLs(files).subscribe({
-      next: (links: string[]) => {
+      next: (links: PresignedUploadLink[]) => {
   
         this.presignedLinks = links;
   
