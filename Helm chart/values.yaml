@@ -8,6 +8,16 @@ metadata:
     labels:
       moj: staticniServer
 
+secrets:
+  mysql:
+    connectionString: jdbc:mysql://host.docker.internal:4000/media
+    username: root
+    password: sigurnost
+  minio:
+    port: 80
+    accessKey: czZinR0I9H5nVEAZ
+    secret: FVOcOVMZVb6QcKtHSPX3Y4vhif2lUpNq
+
 containers:
   backend:
     name: backend-container
@@ -52,7 +62,6 @@ kafka:
     pending: 600000
     finished: 600000
     canceled: 240000
-
 
 enable:
   ingress: true
