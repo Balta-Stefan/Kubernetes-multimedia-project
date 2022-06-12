@@ -1,0 +1,32 @@
+{{- if .Values.enable.workers }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-dep
+  namespace: {{ .Values.namespaces.backend }}
+spec:
+  replicas: {{ .Values.replicas.worker }}
+  selector:
+    matchLabels:
+      moj: worker
+  template:
+    metadata:
+      labels:
+        moj: worker
+    spec:
+      containers:
+        - name: {{ .Values.containers.worker.name }}
+          image: {{ .Values.containers.worker.image }}
+          resources:
+            {{- toYaml .Values.resources.worker | nindent 12 }}
+          ports:
+            - containerPort: {{ .Values.ports.worker }}
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: kafka-producer-consumer-config
+            - configMapRef:
+                name: worker-config
+            - secretRef:
+                name: minio-secret
+{{- end }}

@@ -1,0 +1,41 @@
+{{- if .Values.enable.kafka }}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  namespace: {{ .Values.namespaces.kafka }}
+  name: pending
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  partitions: {{ .Values.kafka.partitions }}
+  replicas: {{ .Values.kafka.replicas }}
+  config:
+    retention.ms: {{ .Values.kafka.retention.pending }}
+    cleanup.policy: delete,compact
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  namespace: {{ .Values.namespaces.kafka }}
+  name: finished
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  partitions: {{ .Values.kafka.partitions }}
+  replicas: {{ .Values.kafka.replicas }}
+  config:
+    retention.ms: {{ .Values.kafka.retention.finished }}
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  namespace: {{ .Values.namespaces.kafka }}
+  name: canceled
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  partitions: {{ .Values.kafka.partitions }}
+  replicas: {{ .Values.kafka.replicas }}
+  config:
+    retention.ms: {{ .Values.kafka.retention.canceled }}
+{{- end }}

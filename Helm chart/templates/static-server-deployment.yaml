@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server-dep
+  namespace: {{ .Values.namespaces.backend }}
+  labels:
+    dep: static-server
+spec:
+  replicas: {{ .Values.replicas.staticServer }}
+  selector:
+    matchLabels:
+      {{- toYaml .Values.metadata.staticServer.labels | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml .Values.metadata.staticServer.labels | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.containers.staticServer.name }}
+          image: {{ .Values.containers.staticServer.image }}
+          resources:
+            {{- toYaml .Values.resources.staticServer | nindent 12 }}
+          ports:
+            - containerPort: {{ .Values.ports.staticServer }}
+          imagePullPolicy: IfNotPresent

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: {{ .Values.namespaces.backend }}
+data:
+  BACKEND_GROUP_ID: bg1
+  BACKEND_PORT: "8081"

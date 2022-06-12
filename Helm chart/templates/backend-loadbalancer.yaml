@@ -1,0 +1,16 @@
+{{- if eq .Values.enable.ingress false }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-loadbalancer
+  namespace: {{ .Values.namespaces.backend }}
+spec:
+  ports:
+  - name: 8081-tcp
+    port: {{ .Values.ports.backend }}
+    protocol: TCP
+    targetPort: {{ .Values.ports.backend }}
+  selector:
+    {{- toYaml .Values.metadata.backend.labels | nindent 4 }} # this might need - toYaml and nindent
+  type: LoadBalancer
+{{- end }}
