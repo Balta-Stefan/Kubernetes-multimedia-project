@@ -2,7 +2,7 @@ import { RxStompConfig } from "@stomp/rx-stomp";
 
 export const myRxStompConfig: RxStompConfig = {
     // Which server?
-    brokerURL: "ws://localhost:8081/register",
+    brokerURL: "ws://localhost:80/ws/register",
   
     // How often to heartbeat?
     // Interval in milliseconds, set to 0 to disable
