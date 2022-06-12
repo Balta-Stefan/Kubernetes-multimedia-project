@@ -1,1 +1,2 @@
 Ovo je moj notes
+Ako nginx ingress ne radi zbog nekog hook-a, obrisati resurs ValidatingWebhookConfiguration.

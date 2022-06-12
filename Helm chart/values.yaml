@@ -14,9 +14,10 @@ secrets:
     username: root
     password: sigurnost
   minio:
+    endpoint: minio.object-storage.svc.cluster.local
     port: 80
-    accessKey: czZinR0I9H5nVEAZ
-    secret: FVOcOVMZVb6QcKtHSPX3Y4vhif2lUpNq
+    accessKey: aJI2HsoZifJvpPHn
+    secret: JKZMAIvW0GhkKOYo1tPRqEo0dxMvpWMV
 
 containers:
   backend:
@@ -51,9 +52,9 @@ resources:
       memory: 300Mi
 
 namespaces:
-  kafka: kafka
   backend: media-app
-  minio: minio
+  minio: object-storage
+  kafka: kafka
 
 kafka:
   partitions: 3
@@ -65,6 +66,9 @@ kafka:
 
 enable:
   ingress: true
-  workers: false
+  workers: true
   backend: true
-  kafka: false
+  kafka: true
+
+strimzi-kafka-operator:
+  watchAnyNamespace: true

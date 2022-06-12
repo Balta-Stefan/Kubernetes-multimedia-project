@@ -4,4 +4,4 @@ metadata:
   name: kafka-producer-consumer-config
   namespace: {{ .Values.namespaces.backend }}
 data:
-  KAFKA_BOOTSTRAP_SERVER: my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
+  KAFKA_BOOTSTRAP_SERVER: my-cluster-kafka-bootstrap.{{ .Values.namespaces.kafka }}.svc.cluster.local:9092
