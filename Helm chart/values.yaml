@@ -10,25 +10,25 @@ metadata:
 
 secrets:
   mysql:
-    connectionString: jdbc:mysql://host.docker.internal:4000/media
+    connectionString: jdbc:mysql://host.docker.internal:3306/media
     username: root
     password: sigurnost
   minio:
-    endpoint: minio.object-storage.svc.cluster.local
-    port: 80
-    accessKey: aJI2HsoZifJvpPHn
-    secret: JKZMAIvW0GhkKOYo1tPRqEo0dxMvpWMV
+    endpoint: host.docker.internal #my-minio.minio.svc.cluster.local
+    port: 9000
+    accessKey: z0pHjuP73F5ed4OA
+    secret: I0vyIpRenz3smP1HBjZxYoMYYl9MxFng
 
 containers:
   backend:
     name: backend-container
-    image: backend-svc
+    image: backend-img
   worker:
     name: worker
-    image: media-worker
+    image: worker-img
   staticServer:
     name: static-server
-    image: static-server
+    image: static-server-img
 
 ports:
   backend: 8081
@@ -37,7 +37,7 @@ ports:
 
 replicas:
   backend: 1
-  worker: 1
+  worker: 2
   staticServer: 1
 
 resources:
