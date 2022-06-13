@@ -18,6 +18,9 @@ spec:
         - name: {{ .Values.containers.backend.name }}
           image: {{ .Values.containers.backend.image }}
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1234
+            runAsNonRoot: true
           ports:
             - containerPort: {{ .Values.ports.backend }}
           resources:

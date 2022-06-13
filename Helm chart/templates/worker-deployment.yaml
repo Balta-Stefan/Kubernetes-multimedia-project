@@ -22,6 +22,9 @@ spec:
           ports:
             - containerPort: {{ .Values.ports.worker }}
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1234
+            runAsNonRoot: true
           envFrom:
             - configMapRef:
                 name: kafka-producer-consumer-config
