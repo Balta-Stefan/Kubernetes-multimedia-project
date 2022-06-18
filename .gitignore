@@ -2,5 +2,4 @@
 /backend/common/target/
 /backend/worker/target/
 /backend/backend_service/src/main/resources/static/*
-/backend/StaticServer/
 /Helm chart/charts/
