@@ -18,9 +18,6 @@ spec:
       containers:
         - name: {{ .Values.containers.staticServer.name }}
           image: {{ .Values.containers.staticServer.image }}
-          securityContext:
-            runAsUser: 1234
-            runAsNonRoot: true
           resources:
             {{- toYaml .Values.resources.staticServer | nindent 12 }}
           ports:
