@@ -4,3 +4,4 @@
 /backend/backend_service/src/main/resources/static/*
 /Helm chart/charts/
 /StaticServer/static
+/Helm chart/*.tgz
