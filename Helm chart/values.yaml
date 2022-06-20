@@ -16,8 +16,8 @@ secrets:
   minio:
     endpoint: host.docker.internal #my-minio.minio.svc.cluster.local
     port: 9000
-    accessKey: z0pHjuP73F5ed4OA
-    secret: I0vyIpRenz3smP1HBjZxYoMYYl9MxFng
+    accessKey: 3e6ToQ1K0WZKswc7
+    secret: I52ckITPnfknHu0ivopJTRxedoNBJVjb
 
 containers:
   backend:
@@ -33,10 +33,10 @@ containers:
 ports:
   backend: 8081
   worker: 8090
-  staticServer: 8080
+  staticServer: 80
 
 replicas:
-  backend: 1
+  backend: 2
   worker: 2
   staticServer: 1
 
