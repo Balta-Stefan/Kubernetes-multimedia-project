@@ -6,7 +6,7 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    replicas: 1
+    replicas: {{ .Values.replicas.kafka }}
     listeners:
       - name: plain
         port: 9092
@@ -30,10 +30,10 @@ spec:
       default.replication.factor: 1
       min.insync.replicas: 1
   zookeeper:
-    replicas: 1
+    replicas: {{ .Values.replicas.zookeeper }}
     storage:
       type: persistent-claim
-      size: 6Gi
+      size: {{ .Values.resources.kafka.diskSize }}
       deleteClaim: false
   entityOperator:
     topicOperator: {}

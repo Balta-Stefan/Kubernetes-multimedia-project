@@ -39,6 +39,8 @@ replicas:
   backend: 2
   worker: 2
   staticServer: 1
+  zookeeper: 1
+  kafka: 1
 
 resources:
   backend:
@@ -50,6 +52,8 @@ resources:
   staticServer:
     limits:
       memory: 300Mi
+  kafka:
+    diskSize: 6Gi
 
 namespaces:
   backend: media-app
