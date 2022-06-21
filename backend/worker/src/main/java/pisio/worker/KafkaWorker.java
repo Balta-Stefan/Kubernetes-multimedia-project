@@ -7,11 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.messages.BaseMessage;
-import pisio.common.model.messages.ExtractAudioMessage;
 import pisio.common.model.messages.Transcode;
 import pisio.worker.services.VideoService;
 import pisio.worker.services.impl.CancelProcessingService;
@@ -137,8 +137,10 @@ public class KafkaWorker
     }
 
     @KafkaListener(topics="${kafka.topic.pending}", groupId = "${pending-topic-group-id}")
-    public void receivePendingMessage(@Payload(required = false) BaseMessage msg)
+    public void receivePendingMessage(@Payload(required = false) BaseMessage msg, Acknowledgment acknowledgment)
     {
+        acknowledgment.acknowledge();
+
         if(msg == null)
         {
             return; // received a tombstone record
@@ -148,8 +150,10 @@ public class KafkaWorker
         tempMessage.setProgress(ProcessingProgress.PROCESSING);
         kafkaTemplate.send(processingTopicName, tempMessage);
 
-        downloadFile(msg.getBucket(), msg.getObject()).ifPresent(downloadedFilePath ->
+        Optional<String> downloadedFilePathOpt = downloadFile(msg.getBucket(), msg.getObject());
+        if(downloadedFilePathOpt.isPresent())
         {
+            String downloadedFilePath = downloadedFilePathOpt.get();
             Optional<String> outputPath;
             String processedObjectName;
 
@@ -178,7 +182,14 @@ public class KafkaWorker
             {
                 log.warn("Couldn't delete downloaded file " + downloadedFilePath);
             }
-        });
+        }
+        else
+        {
+            tempMessage.setProgress(ProcessingProgress.FAILED);
+            kafkaTemplate.send(processingTopicName, tempMessage);
+        }
+
+
     }
 
     /*@KafkaHandler
