@@ -194,7 +194,7 @@ export class MainPageComponent implements OnInit, OnDestroy {
 
     this.items.forEach(item => {
       item.notifications.forEach((notification: Notification) => {
-        if(notification.progress == ProcessingProgress.PENDING || notification.progress == ProcessingProgress.PROCESSING){
+        if(notification.processingID){
           this.fileService.stopProcessing(item.file, notification.processingID!).subscribe(() => notification.progress = ProcessingProgress.CANCELED);
         }
       });
