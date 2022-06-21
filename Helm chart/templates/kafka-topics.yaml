@@ -38,4 +38,17 @@ spec:
   replicas: {{ .Values.kafka.replicas }}
   config:
     retention.ms: {{ .Values.kafka.retention.canceled }}
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  namespace: {{ .Values.namespaces.kafka }}
+  name: processing
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  partitions: {{ .Values.kafka.partitions }}
+  replicas: {{ .Values.kafka.replicas }}
+  config:
+    retention.ms: {{ .Values.kafka.retention.processing }}
 {{- end }}
