@@ -36,7 +36,7 @@ ports:
   staticServer: 80
 
 replicas:
-  backend: 2
+  backend: 1
   worker: 2
   staticServer: 1
   zookeeper: 1
@@ -61,12 +61,13 @@ namespaces:
   kafka: kafka
 
 kafka:
-  partitions: 3
+  partitions: 2
   replicas: 1
   retention:
     pending: 600000
     finished: 600000
     canceled: 240000
+    processing: 60000
 
 enable:
   ingress: true
