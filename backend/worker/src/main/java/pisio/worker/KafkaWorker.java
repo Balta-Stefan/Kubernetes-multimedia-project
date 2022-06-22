@@ -68,8 +68,7 @@ public class KafkaWorker
         }
         catch(Exception e)
         {
-            log.warn("An exception has occured in KafkaWorker.downloadFile");
-            e.printStackTrace();
+            log.warn("Kafka worker couldn't download object: " + object + ", in bucket: " + bucket);
             new File(fileName).delete(); // delete the file if it was created
             return Optional.empty();
         }
