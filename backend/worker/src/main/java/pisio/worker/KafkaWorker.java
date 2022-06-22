@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import pisio.common.model.enums.ProcessingProgress;
@@ -136,10 +135,8 @@ public class KafkaWorker
     }
 
     @KafkaListener(topics="${kafka.topic.pending}", groupId = "${pending-topic-group-id}")
-    public void receivePendingMessage(@Payload(required = false) BaseMessage msg, Acknowledgment acknowledgment)
+    public void receivePendingMessage(@Payload(required = false) BaseMessage msg)
     {
-        acknowledgment.acknowledge();
-
         if(msg == null)
         {
             return; // received a tombstone record
