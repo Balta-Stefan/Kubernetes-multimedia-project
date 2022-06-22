@@ -309,7 +309,9 @@ public class FilesServiceImpl implements FilesService
     @Override
     public void stopProcessing(String file, String processingID, AuthenticatedUser user)
     {
-        this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), pendingDirectoryPrefix + file, false);
+        String bucket = BucketNameCreator.createBucket(user.getUserID());
+        this.deleteObject(bucket, pendingDirectoryPrefix + file, false);
+        log.info("Deleted pending file: " + file + ", in bucket: " + bucket + ", with processingID: " + processingID);
         pendingTopicKafkaTemplate.send(pendingTopic, processingID, null);
         canceledTopicKafkaTemplate.send(canceledTopic, processingID);
 
