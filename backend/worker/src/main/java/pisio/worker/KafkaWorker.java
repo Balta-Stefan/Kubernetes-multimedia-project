@@ -28,9 +28,6 @@ public class KafkaWorker
     @Value("${kafka.topic.finished}")
     private String finishedTopicName;
 
-    @Value("${kafka.topic.canceled}")
-    private String canceledTopic;
-
     @Value("${kafka.topic.processing}")
     private String processingTopicName;
 
