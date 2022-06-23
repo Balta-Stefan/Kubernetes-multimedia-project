@@ -30,21 +30,7 @@ public class KafkaService
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
-    @KafkaListener(topics="${kafka.topic.processing}", groupId = "${kafka.listener.group-id}")
-    public void listenProcessingTopic(BaseMessage notification)
-    {
-        log.info("Listener received a processing notification with file: " + notification.getFileName());
-        UserNotification userNotification = new UserNotification(
-                notification.getProcessingID(),
-                notification.getFileName(),
-                notification.getProgress(),
-                null,
-                notification.getType());
-
-        simpMessagingTemplate.convertAndSend("/queue/" + notification.getMessageQueueID() + "/notifications", userNotification);
-    }
-
-    @KafkaListener(topics = "${kafka.topic.finished}", groupId = "${kafka.listener.group-id}")
+    @KafkaListener(topics = "${kafka.topic.notifications}", groupId = "${kafka.listener.group-id}")
     public void listenFinishedTopic(BaseMessage notification)
     {
         log.info("Listener received a notification with file: " + notification.getFileName());
@@ -55,11 +41,7 @@ public class KafkaService
                 null,
                 notification.getType());
 
-        if(notification.getProgress().equals(ProcessingProgress.FAILED))
-        {
-            log.warn("Processing failed");
-        }
-        else if(notification.getProgress().equals(ProcessingProgress.FINISHED))
+        if(notification.getProgress().equals(ProcessingProgress.FINISHED))
         {
             String presignedURL = filesService.createPresignURL(notification.getBucket(), notification.getObject(), objectExpiration, Method.GET);
             userNotification.setUrl(presignedURL);

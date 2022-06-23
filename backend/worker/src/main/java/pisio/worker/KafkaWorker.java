@@ -25,11 +25,9 @@ import java.util.UUID;
 public class KafkaWorker
 {
     private final KafkaTemplate<String, BaseMessage> kafkaTemplate;
-    @Value("${kafka.topic.finished}")
-    private String finishedTopicName;
 
-    @Value("${kafka.topic.processing}")
-    private String processingTopicName;
+    @Value("${kafka.topic.notifications}")
+    private String notificationsTopicName;
 
     @Value("${prefix.finished}")
     private String finishedDirectoryPrefix;
@@ -103,7 +101,7 @@ public class KafkaWorker
         String outputFilePath;
         if(outputFilePathOpt.isEmpty())
         {
-            kafkaTemplate.send(finishedTopicName, response);
+            kafkaTemplate.send(notificationsTopicName, response);
             log.warn("Media worker hasn't received output file of the ffmpeg class");
             return;
         }
@@ -121,7 +119,7 @@ public class KafkaWorker
         {
             log.warn("Couldn't delete processed file: " + outputFilePath);
         }
-        kafkaTemplate.send(finishedTopicName, response);
+        kafkaTemplate.send(notificationsTopicName, response);
         log.info("Worker has sent kafka message with progress: " + response.getProgress().name());
     }
 
@@ -141,7 +139,7 @@ public class KafkaWorker
         log.info("Worker has received a message with object" + msg.getObject() + " and type: " + msg.getType());
         BaseMessage tempMessage = new BaseMessage(msg);
         tempMessage.setProgress(ProcessingProgress.PROCESSING);
-        kafkaTemplate.send(processingTopicName, tempMessage);
+        kafkaTemplate.send(notificationsTopicName, tempMessage);
 
         Optional<String> downloadedFilePathOpt = downloadFile(msg.getBucket(), msg.getObject());
         if(downloadedFilePathOpt.isPresent())
@@ -179,7 +177,7 @@ public class KafkaWorker
         else
         {
             tempMessage.setProgress(ProcessingProgress.FAILED);
-            kafkaTemplate.send(processingTopicName, tempMessage);
+            kafkaTemplate.send(notificationsTopicName, tempMessage);
         }
 
 

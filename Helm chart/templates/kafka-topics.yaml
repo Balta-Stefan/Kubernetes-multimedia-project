@@ -17,14 +17,14 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   namespace: {{ .Values.namespaces.kafka }}
-  name: finished
+  name: notifications
   labels:
     strimzi.io/cluster: "my-cluster"
 spec:
   partitions: {{ .Values.kafka.partitions }}
   replicas: {{ .Values.kafka.replicas }}
   config:
-    retention.ms: {{ .Values.kafka.retention.finished }}
+    retention.ms: {{ .Values.kafka.retention.notifications }}
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -38,17 +38,4 @@ spec:
   replicas: {{ .Values.kafka.replicas }}
   config:
     retention.ms: {{ .Values.kafka.retention.canceled }}
----
-apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaTopic
-metadata:
-  namespace: {{ .Values.namespaces.kafka }}
-  name: processing
-  labels:
-    strimzi.io/cluster: "my-cluster"
-spec:
-  partitions: {{ .Values.kafka.partitions }}
-  replicas: {{ .Values.kafka.replicas }}
-  config:
-    retention.ms: {{ .Values.kafka.retention.processing }}
 {{- end }}

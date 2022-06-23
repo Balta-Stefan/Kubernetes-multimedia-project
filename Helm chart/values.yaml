@@ -16,8 +16,8 @@ secrets:
   minio:
     endpoint: host.docker.internal #my-minio.minio.svc.cluster.local
     port: 9000
-    accessKey: 3e6ToQ1K0WZKswc7
-    secret: I52ckITPnfknHu0ivopJTRxedoNBJVjb
+    accessKey: WuKQ7RStEM9tmVw4
+    secret: RXN9tTl28xQ7a9j15scfo5qGoqO5mfSv
 
 containers:
   backend:
@@ -65,9 +65,8 @@ kafka:
   replicas: 1
   retention:
     pending: 600000
-    finished: 600000
-    canceled: 240000
-    processing: 60000
+    notifications: 300000
+    canceled: 300000
 
 enable:
   ingress: true
