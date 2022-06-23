@@ -83,8 +83,6 @@ public class FilesServiceImpl implements FilesService
     @Override
     public List<PresignedUploadLink> requestPresignUrls(List<String> files, AuthenticatedUser user)
     {
-        // Get presigned URL string to upload 'my-objectname' in 'my-bucketname'
-
         try
         {
             if (minioClient.bucketExists(BucketExistsArgs.builder().bucket(BucketNameCreator.createBucket(user.getUserID())).build()) == false)
