@@ -30,7 +30,7 @@ public class KafkaService
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
-    @KafkaListener(topics = "${kafka.topic.notifications}", groupId = "${kafka.listener.group-id}")
+    @KafkaListener(topics = "${kafka.topic.notifications}", groupId = "#{T(java.util.UUID).randomUUID().toString()}")
     public void listenFinishedTopic(BaseMessage notification)
     {
         log.info("Listener received a notification with file: " + notification.getFileName());
