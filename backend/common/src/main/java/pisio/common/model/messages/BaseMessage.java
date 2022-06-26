@@ -1,11 +1,10 @@
 package pisio.common.model.messages;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import pisio.common.model.enums.ProcessingProgress;
 import pisio.common.model.enums.ProcessingType;
+
+import java.util.Objects;
 
 @Data
 @AllArgsConstructor
@@ -19,6 +18,7 @@ public class BaseMessage
     protected String username; // username is needed when sending a message to the user's queue
     protected String bucket;
     protected String object;
+    protected String processedObjectName;
     protected String fileName;
     protected ProcessingProgress progress;
     protected ProcessingType type;
@@ -31,8 +31,24 @@ public class BaseMessage
         this.username = msg.username;
         this.bucket = msg.bucket;
         this.object = msg.object;
+        this.processedObjectName = msg.processedObjectName;
         this.fileName = msg.fileName;
         this.progress = msg.progress;
         this.type = msg.type;
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BaseMessage that = (BaseMessage) o;
+        return processingID.equals(that.processingID);
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(processingID);
     }
 }

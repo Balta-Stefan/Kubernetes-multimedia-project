@@ -127,6 +127,7 @@ public class FilesServiceImpl implements FilesService
     public List<ProcessingRequestReply> uploadFinishedNotification(ProcessingRequest request, AuthenticatedUser user)
     {
         int sentMessages = 0;
+        String processedObjectName = null;
 
         BaseMessage baseMessage = new BaseMessage(
                 user.getMessageQueueID(),
@@ -135,6 +136,7 @@ public class FilesServiceImpl implements FilesService
                 user.getUsername(),
                 BucketNameCreator.createBucket(user.getUserID()),
                 pendingDirectoryPrefix + request.getFile(),
+                null,
                 request.getFile(),
                 ProcessingProgress.PENDING,
                 null);
@@ -143,9 +145,12 @@ public class FilesServiceImpl implements FilesService
 
         if(request.isExtractAudio())
         {
+            processedObjectName = finishedDirectoryPrefix + baseMessage.getFileName() + "/AUDIO.mp4";
+
             ExtractAudioMessage tempMsg = new ExtractAudioMessage(baseMessage);
             tempMsg.setType(ProcessingType.EXTRACT_AUDIO);
             tempMsg.setProcessingID(UUID.randomUUID().toString());
+            tempMsg.setProcessedObjectName(processedObjectName);
             sentMessages++;
             log.info("Backend sending extract audio message with type: " + tempMsg.getType());
             pendingTopicKafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
@@ -154,10 +159,17 @@ public class FilesServiceImpl implements FilesService
         }
         if(request.getTargetResolution().isValid())
         {
+            processedObjectName = finishedDirectoryPrefix + baseMessage.getFileName() + "/"
+                    + "TRANSCODED_"
+                    + request.getTargetResolution().getWidth()
+                    + "x"
+                    + request.getTargetResolution().getHeight();
+
             Transcode tempMsg = new Transcode(baseMessage);
             tempMsg.setType(ProcessingType.TRANSCODE);
             tempMsg.setProcessingID(UUID.randomUUID().toString());
             tempMsg.setTargetResolution(request.getTargetResolution());
+            tempMsg.setProcessedObjectName(processedObjectName);
             log.info("Backend sending transcode message with type: " + tempMsg.getType());
             pendingTopicKafkaTemplate.send(pendingTopic, tempMsg.getProcessingID(), tempMsg);
 
