@@ -33,7 +33,6 @@ public class KafkaService
     @KafkaListener(topics = "${kafka.topic.notifications}", groupId = "#{T(java.util.UUID).randomUUID().toString()}")
     public void listenFinishedTopic(BaseMessage notification)
     {
-        log.info("Listener received a notification with file: " + notification.getFileName());
         UserNotification userNotification = new UserNotification(
                 notification.getProcessingID(),
                 notification.getFileName(),
@@ -43,12 +42,8 @@ public class KafkaService
 
         if(notification.getProgress().equals(ProcessingProgress.FINISHED))
         {
-            String presignedURL = filesService.createPresignURL(notification.getBucket(), notification.getObject(), objectExpiration, Method.GET);
+            String presignedURL = filesService.createPresignURL(notification.getBucket(), notification.getProcessedObjectName(), objectExpiration, Method.GET);
             userNotification.setUrl(presignedURL);
-        }
-        else
-        {
-            userNotification.setProgress(ProcessingProgress.UNKNOWN);
         }
 
         simpMessagingTemplate.convertAndSend("/queue/" + notification.getMessageQueueID() + "/notifications", userNotification);
