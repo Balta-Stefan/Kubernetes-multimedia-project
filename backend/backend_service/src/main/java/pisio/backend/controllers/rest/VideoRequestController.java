@@ -1,5 +1,6 @@
 package pisio.backend.controllers.rest;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import pisio.backend.models.AuthenticatedUser;
@@ -52,12 +53,14 @@ public class VideoRequestController
     }
 
     @DeleteMapping("/processing")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void stopProcessing(@RequestParam String file, @RequestParam String processingID, @AuthenticationPrincipal AuthenticatedUser user)
     {
         this.filesService.stopProcessing(file, processingID, user);
     }
 
     @DeleteMapping("/pending/{file}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePendingFile(@PathVariable String file, @AuthenticationPrincipal AuthenticatedUser user)
     {
         this.filesService.deletePendingObject(file, user);
