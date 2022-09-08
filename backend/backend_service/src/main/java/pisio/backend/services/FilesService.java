@@ -16,6 +16,6 @@ public interface FilesService
     List<ProcessingRequestReply> uploadFinishedNotification(ProcessingRequest request, AuthenticatedUser user);
     List<ProcessingItem> listBucket(AuthenticatedUser user);
     boolean deleteObject(String bucket, String object, boolean recursive);
-    boolean deletePendingObject(String file, AuthenticatedUser user);
+    void deletePendingObject(String file, AuthenticatedUser user);
     void stopProcessing(String file, String processingID, AuthenticatedUser user);
 }

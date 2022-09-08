@@ -9,6 +9,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import pisio.backend.exceptions.BadRequestException;
 import pisio.backend.exceptions.InternalServerError;
+import pisio.backend.exceptions.NotFoundException;
 import pisio.backend.models.AuthenticatedUser;
 import pisio.backend.models.DTOs.PresignedUploadLink;
 import pisio.backend.services.FilesService;
@@ -308,12 +309,13 @@ public class FilesServiceImpl implements FilesService
     }
 
     @Override
-    public boolean deletePendingObject(String file, AuthenticatedUser user)
+    public void deletePendingObject(String file, AuthenticatedUser user)
     {
         String bucket = BucketNameCreator.createBucket(user.getUserID());
         String object = pendingDirectoryPrefix + file;
 
-        return deleteObjectUtil(bucket, object);
+        if(deleteObjectUtil(bucket, object) == false)
+            throw new NotFoundException();
     }
 
     @Override
@@ -325,6 +327,7 @@ public class FilesServiceImpl implements FilesService
         pendingTopicKafkaTemplate.send(pendingTopic, processingID, null);
         canceledTopicKafkaTemplate.send(canceledTopic, processingID);
 
-        this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), finishedDirectoryPrefix + file, true);
+        if(this.deleteObject(BucketNameCreator.createBucket(user.getUserID()), finishedDirectoryPrefix + file, true) == false)
+            throw new NotFoundException();
     }
 }
