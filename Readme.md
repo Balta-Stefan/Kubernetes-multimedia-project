@@ -1,4 +1,6 @@
-A web application that receives video files from users and extracts audio stream and/or changes its resolution.
+# Description
+
+This is a web application that receives video files from users and extracts audio stream and/or changes its resolution.
 Users are notified of the progress via WebSocket connection.
 The application executes in a Kubernetes cluster with 4 main components:
 1. Front end servers
